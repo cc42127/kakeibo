@@ -689,9 +689,15 @@
         </div>
       </div>
 
-      <!-- 付款方式（現金＋所有信用卡） -->
-      <label class="label-sm">付款方式（點選切換）</label>
-      <div class="pill-scroll" id="paymentMethodPills"></div>
+<!-- 付款方式（現金／信用卡二選一 ＋ 智慧下拉選單） -->
+<label class="label-sm">付款方式</label>
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px;">
+  <button type="button" id="payCashBtn" class="pill-btn active" onclick="setPayMethodType('cash')">💵 現金支出</button>
+  <button type="button" id="payCardBtn" class="pill-btn" onclick="setPayMethodType('card')">💳 信用卡</button>
+</div>
+<div id="cardSelectBox" style="display: none; margin-bottom: 10px;">
+  <select id="creditCardSelect" class="select-field" onchange="onCardChange(this.value)"></select>
+</div>
 
       <!-- 貼心微調開關（選信用卡時顯示） -->
       <div id="creditSmartZone" style="display:none;">
@@ -1351,16 +1357,67 @@ function doGet(e) {
     renderSettingsTab();
   }
 
-  function renderPaymentPills() {
-    const wrap = document.getElementById('paymentMethodPills');
-    let html = `<button type="button" class="pill-btn ${selectedPayment === 'cash' ? 'active' : ''}" onclick="selectPayment('cash')">💵 現金支出</button>`;
-    state.cards.forEach(c => {
-      const active = selectedPayment === c.id ? 'active-coral' : '';
-      html += `<button type="button" class="pill-btn ${active}" onclick="selectPayment('${c.id}')">💳 ${c.name} (${c.closingDay}結/${c.dueDay}繳)</button>`;
-    });
-    wrap.innerHTML = html;
-    document.getElementById('creditSmartZone').style.display = (selectedPayment === 'cash') ? 'none' : 'block';
+function setPayMethodType(type) {
+  const cashBtn = document.getElementById('payCashBtn');
+  const cardBtn = document.getElementById('payCardBtn');
+  const cardBox = document.getElementById('cardSelectBox');
+  const smartZone = document.getElementById('creditSmartZone');
+
+  if (type === 'cash') {
+    selectedPayment = 'cash';
+    cashBtn.className = 'pill-btn active';
+    cardBtn.className = 'pill-btn';
+    cardBox.style.display = 'none';
+    smartZone.style.display = 'none';
+  } else {
+    cashBtn.className = 'pill-btn';
+    cardBtn.className = 'pill-btn active-coral';
+    cardBox.style.display = 'block';
+    smartZone.style.display = 'block';
+
+    // 讀取上次刷的卡，若無則預設第一張
+    const lastId = localStorage.getItem('last_card_id');
+    const target = state.cards.find(c => c.id === lastId) || state.cards[0];
+    if (target) {
+      selectedPayment = target.id;
+      document.getElementById('creditCardSelect').value = target.id;
+    }
   }
+}
+
+function onCardChange(cardId) {
+  selectedPayment = cardId;
+  localStorage.setItem('last_card_id', cardId);
+}
+
+function renderPaymentPills() {
+  const select = document.getElementById('creditCardSelect');
+  if (!select) return;
+  if (!state.cards.length) {
+    select.innerHTML = '<option value="">(尚未新增信用卡)</option>';
+    return;
+  }
+
+  const lastId = localStorage.getItem('last_card_id');
+  const lastCard = state.cards.find(c => c.id === lastId);
+  const otherCards = state.cards
+    .filter(c => c.id !== (lastCard ? lastCard.id : ''))
+    .sort((a, b) => a.closingDay - b.closingDay);
+
+  let html = '';
+  if (lastCard) {
+    html += `<option value="${lastCard.id}">⭐ 上次使用：${lastCard.name} (${lastCard.closingDay}結/${lastCard.dueDay}繳)</option>`;
+    if (otherCards.length) html += `<option disabled>──────── 依結帳日排序 ────────</option>`;
+  }
+  otherCards.forEach(c => {
+    html += `<option value="${c.id}">💳 ${c.name} (${c.closingDay}結/${c.dueDay}繳)</option>`;
+  });
+
+  select.innerHTML = html;
+  if (selectedPayment !== 'cash') {
+    select.value = selectedPayment;
+  }
+}
 
   function renderCategories() {
     const grid = document.getElementById('categoryGrid');
