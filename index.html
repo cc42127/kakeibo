@@ -588,7 +588,6 @@
       </svg>
       <div>
         <h1 class="header-title">家計簿</h1>
-        <span class="header-sub" id="budgetCycleText">週期: 10/01 ~ 10/31</span>
       </div>
     </div>
 
@@ -889,7 +888,7 @@
           <input type="number" id="setBudgetLimit" class="input-field" inputmode="numeric" />
         </div>
         <div>
-          <label class="label-sm">每月發薪／預算起始日 (1~31號)</label>
+          <label class="label-sm">發薪日</label>
           <input type="number" id="setBudgetStartDay" class="input-field" min="1" max="31" inputmode="numeric" />
         </div>
       </div>
@@ -1279,7 +1278,7 @@ function doGet(e) {
 
     document.getElementById('currentMonthLabel').textContent = `${y}/${String(m).padStart(2,'0')}`;
     const period = getBudgetPeriodRange(currentViewYM);
-    document.getElementById('budgetCycleText').textContent = `預算週期: ${period.startFull.slice(5)} ~ ${period.endFull.slice(5)}`;
+
     document.getElementById('topBudgetLimit').textContent = state.budgetLimit.toLocaleString();
 
     // 1. 計算本週期現金支出與本週期新刷卡（個人實付額）
