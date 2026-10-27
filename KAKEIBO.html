@@ -1,0 +1,1827 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="繪本家計簿" />
+  <title>繪本家計簿｜信用卡週期與預算控管</title>
+
+  <!-- 備援日系圓體 Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&display=swap" rel="stylesheet">
+
+  <style>
+    /* 載入開源 jf-openhuninn 開放粉圓體 CDN */
+    @font-face {
+      font-family: 'Huninn';
+      src: url('https://cdn.jsdelivr.net/gh/marsnow/open-huninn-font@1.1/font/jf-openhuninn.woff') format('woff'),
+           url('https://cdn.jsdelivr.net/gh/marsnow/open-huninn-font@1.1/font/jf-openhuninn.ttf') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    :root {
+      --washi-bg: #FFFCF6;
+      --ink-border: #3E3A39;
+      --coral: #F2A497;
+      --yamabuki: #F6D27A;
+      --aqua: #A8D3E6;
+      --bamboo: #B9DAA5;
+      --paper-card: #FFFDF9;
+      --muted-ink: #7A7370;
+      --border-thick: 3px solid #3E3A39;
+      --shadow-hard: 3px 3px 0px #3E3A39;
+      --shadow-sm: 2px 2px 0px #3E3A39;
+      --radius-lg: 20px;
+      --radius-md: 14px;
+      --radius-pill: 999px;
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--washi-bg);
+      color: var(--ink-border);
+      font-family: 'Huninn', 'Zen Maru Gothic', -apple-system, BlinkMacSystemFont, sans-serif;
+      line-height: 1.45;
+      padding-bottom: 96px;
+    }
+
+    .app-container {
+      max-width: 520px;
+      margin: 0 auto;
+      padding: 14px 14px 30px;
+    }
+
+    /* 頂部繪本標題列 */
+    .header-card {
+      background: var(--yamabuki);
+      border: var(--border-thick);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-hard);
+      padding: 12px 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .header-title {
+      font-size: 1.2rem;
+      font-weight: 900;
+      margin: 0;
+      letter-spacing: 0.5px;
+    }
+
+    .header-sub {
+      font-size: 0.78rem;
+      margin: 2px 0 0;
+      background: var(--washi-bg);
+      border: 2px solid var(--ink-border);
+      border-radius: var(--radius-pill);
+      padding: 1px 8px;
+      display: inline-block;
+    }
+
+    .month-picker-wrap {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      background: var(--washi-bg);
+      border: var(--border-thick);
+      border-radius: var(--radius-md);
+      padding: 4px 6px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .month-btn {
+      background: var(--aqua);
+      border: 2px solid var(--ink-border);
+      border-radius: 8px;
+      width: 26px;
+      height: 26px;
+      font-family: inherit;
+      font-weight: bold;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .month-btn:active {
+      transform: translate(1px, 1px);
+    }
+
+    .month-label {
+      font-size: 0.9rem;
+      font-weight: bold;
+      min-width: 68px;
+      text-align: center;
+    }
+
+    /* 通用繪本卡片 */
+    .storybook-card {
+      background: var(--washi-bg);
+      border: var(--border-thick);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-hard);
+      padding: 14px;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: bold;
+      margin: 0 0 10px 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+
+    .section-title-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    /* 雙軌預算並排看板 */
+    .budget-summary-bar {
+      background: var(--washi-bg);
+      border: var(--border-thick);
+      border-radius: var(--radius-md);
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      font-size: 0.84rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .dual-budget-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .budget-box {
+      border: var(--border-thick);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-hard);
+      padding: 12px 10px;
+      position: relative;
+    }
+
+    .budget-box.track-a {
+      background: var(--yamabuki);
+    }
+
+    .budget-box.track-b {
+      background: var(--aqua);
+    }
+
+    .budget-box-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 0.8rem;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .budget-remain-label {
+      font-size: 0.75rem;
+    }
+
+    .budget-remain-num {
+      font-size: 1.32rem;
+      font-weight: 900;
+      margin: 2px 0 6px;
+      background: var(--washi-bg);
+      border: 2px solid var(--ink-border);
+      border-radius: 10px;
+      padding: 3px 8px;
+      display: block;
+    }
+
+    .budget-remain-num.danger {
+      background: var(--coral);
+    }
+
+    /* 電池式無漸層平塗進度條 */
+    .battery-bar {
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      gap: 2px;
+      background: var(--washi-bg);
+      border: 2px solid var(--ink-border);
+      border-radius: 8px;
+      padding: 3px;
+      margin-bottom: 6px;
+    }
+
+    .battery-cell {
+      height: 10px;
+      border-radius: 3px;
+      border: 1.5px solid var(--ink-border);
+      background: var(--washi-bg);
+    }
+
+    .battery-cell.filled-safe {
+      background: var(--bamboo);
+    }
+    .battery-cell.filled-warn {
+      background: var(--yamabuki);
+    }
+    .battery-cell.filled-danger {
+      background: var(--coral);
+    }
+
+    .budget-detail-list {
+      font-size: 0.74rem;
+      background: var(--washi-bg);
+      border: 2px solid var(--ink-border);
+      border-radius: 10px;
+      padding: 6px 8px;
+      line-height: 1.4;
+    }
+
+    .budget-detail-row {
+      display: flex;
+      justify-content: space-between;
+    }
+
+    /* 表單與按鈕元素 */
+    .btn {
+      font-family: inherit;
+      font-weight: bold;
+      border: var(--border-thick);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-hard);
+      background: var(--washi-bg);
+      color: var(--ink-border);
+      padding: 9px 14px;
+      font-size: 0.92rem;
+      cursor: pointer;
+      transition: transform 0.06s;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .btn:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px var(--ink-border);
+    }
+
+    .btn-coral { background: var(--coral); }
+    .btn-yamabuki { background: var(--yamabuki); }
+    .btn-aqua { background: var(--aqua); }
+    .btn-bamboo { background: var(--bamboo); }
+    .btn-sm {
+      padding: 4px 10px;
+      font-size: 0.78rem;
+      border-width: 2px;
+      border-radius: 10px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .input-field, .select-field {
+      width: 100%;
+      font-family: inherit;
+      font-size: 0.95rem;
+      background: var(--washi-bg);
+      color: var(--ink-border);
+      border: var(--border-thick);
+      border-radius: var(--radius-md);
+      padding: 9px 12px;
+      outline: none;
+    }
+
+    .input-amount {
+      font-size: 1.35rem;
+      font-weight: 900;
+      background: var(--washi-bg);
+    }
+
+    /* 膠囊選擇器（付款方式、分類、貼心開關） */
+    .pill-scroll {
+      display: flex;
+      gap: 7px;
+      overflow-x: auto;
+      padding-bottom: 6px;
+      margin-bottom: 10px;
+      scrollbar-width: none;
+    }
+    .pill-scroll::-webkit-scrollbar { display: none; }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 7px;
+      margin-bottom: 12px;
+    }
+
+    .pill-btn {
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: bold;
+      background: var(--washi-bg);
+      color: var(--ink-border);
+      border: 2.5px solid var(--ink-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 6px 10px;
+      cursor: pointer;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .pill-btn.active {
+      background: var(--yamabuki);
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px var(--ink-border);
+    }
+
+    .pill-btn.active-coral {
+      background: var(--coral);
+    }
+
+    .pill-btn.active-aqua {
+      background: var(--aqua);
+    }
+
+    .smart-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .toggle-chip {
+      font-family: inherit;
+      font-size: 0.78rem;
+      font-weight: bold;
+      background: var(--washi-bg);
+      border: 2px solid var(--ink-border);
+      border-radius: var(--radius-pill);
+      padding: 4px 10px;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .toggle-chip.on {
+      background: var(--aqua);
+    }
+
+    .sub-panel {
+      background: var(--aqua);
+      border: 2.5px solid var(--ink-border);
+      border-radius: var(--radius-md);
+      padding: 10px;
+      margin-bottom: 10px;
+      font-size: 0.84rem;
+    }
+
+    /* 信用卡週期卡片 */
+    .cc-card {
+      background: var(--washi-bg);
+      border: var(--border-thick);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-hard);
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+
+    .cc-card.urgent {
+      background: var(--coral);
+    }
+
+    .cc-card.paid {
+      background: var(--bamboo);
+    }
+
+    .cc-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .cc-name {
+      font-size: 1.02rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .cc-cycle-badge {
+      font-size: 0.73rem;
+      background: var(--washi-bg);
+      border: 2px solid var(--ink-border);
+      border-radius: var(--radius-pill);
+      padding: 2px 8px;
+      display: inline-block;
+      margin-top: 3px;
+    }
+
+    .cc-amounts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      background: var(--washi-bg);
+      border: 2.5px solid var(--ink-border);
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      margin-bottom: 8px;
+    }
+
+    .cc-amt-box {
+      font-size: 0.78rem;
+    }
+
+    .cc-amt-val {
+      font-size: 1.08rem;
+      font-weight: 900;
+    }
+
+    /* 明細列表 */
+    .tx-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--washi-bg);
+      border: 2px solid var(--ink-border);
+      border-radius: 12px;
+      padding: 8px 10px;
+      margin-bottom: 7px;
+      font-size: 0.85rem;
+    }
+
+    .tx-badge {
+      font-size: 0.68rem;
+      padding: 1px 6px;
+      border: 1.5px solid var(--ink-border);
+      border-radius: 99px;
+      background: var(--yamabuki);
+      margin-left: 4px;
+      display: inline-block;
+    }
+
+    /* 底部繪本導覽列 */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: var(--washi-bg);
+      border-top: var(--border-thick);
+      padding: 8px 12px calc(8px + env(safe-area-inset-bottom));
+      z-index: 100;
+    }
+
+    .bottom-nav-inner {
+      max-width: 520px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .nav-btn {
+      font-family: inherit;
+      background: var(--washi-bg);
+      border: 2.5px solid var(--ink-border);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      padding: 6px 4px;
+      font-size: 0.76rem;
+      font-weight: bold;
+      color: var(--ink-border);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .nav-btn.active {
+      background: var(--yamabuki);
+      transform: translate(1px, 1px);
+      box-shadow: 1px 1px 0px var(--ink-border);
+    }
+
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .label-sm {
+      font-size: 0.78rem;
+      font-weight: bold;
+      margin-bottom: 3px;
+      display: block;
+    }
+
+    .code-box {
+      background: var(--washi-bg);
+      border: 2px solid var(--ink-border);
+      border-radius: 10px;
+      padding: 8px;
+      font-family: monospace;
+      font-size: 0.74rem;
+      max-height: 150px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-container">
+  <!-- 頂部：日系理財文具插圖（招財貓＋家計簿＋零錢包）與檢視月份切換 -->
+  <header class="header-card">
+    <div class="header-left">
+      <!-- 自繪 3px 粗框平塗 SVG：招財貓與家計簿 -->
+      <svg width="46" height="46" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <!-- 家計簿底本 -->
+        <rect x="6" y="10" width="34" height="44" rx="6" fill="#A8D3E6" stroke="#3E3A39" stroke-width="3"/>
+        <line x1="14" y1="10" x2="14" y2="54" stroke="#3E3A39" stroke-width="3"/>
+        <rect x="19" y="18" width="15" height="9" rx="2" fill="#FFFCF6" stroke="#3E3A39" stroke-width="2.5"/>
+        <!-- 招財貓與小判金幣 -->
+        <path d="M32 34 C32 24, 56 24, 56 34 L56 52 C56 55, 32 55, 32 52 Z" fill="#FFFCF6" stroke="#3E3A39" stroke-width="3"/>
+        <polygon points="34,27 36,17 42,24" fill="#F2A497" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/>
+        <polygon points="54,27 52,17 46,24" fill="#F2A497" stroke="#3E3A39" stroke-width="3" stroke-linejoin="round"/>
+        <circle cx="40" cy="34" r="2" fill="#3E3A39"/>
+        <circle cx="48" cy="34" r="2" fill="#3E3A39"/>
+        <ellipse cx="44" cy="45" rx="7" ry="9" fill="#F6D27A" stroke="#3E3A39" stroke-width="2.5"/>
+        <line x1="44" y1="40" x2="44" y2="50" stroke="#3E3A39" stroke-width="2.5"/>
+      </svg>
+      <div>
+        <h1 class="header-title">繪本家計簿</h1>
+        <span class="header-sub" id="budgetCycleText">週期: 10/01 ~ 10/31</span>
+      </div>
+    </div>
+
+    <div class="month-picker-wrap">
+      <button class="month-btn" onclick="changeMonth(-1)">◀</button>
+      <div class="month-label" id="currentMonthLabel">2026/10</div>
+      <button class="month-btn" onclick="changeMonth(1)">▶</button>
+    </div>
+  </header>
+
+  <!-- ==================== 分頁 1：記帳與雙軌預算 ==================== -->
+  <div id="tab-home" class="tab-pane active">
+    <div class="budget-summary-bar">
+      <span>🎯 <strong>每月預算上限：$<span id="topBudgetLimit">30,000</span></strong></span>
+      <span id="fixedPreDeductText" style="font-size:0.78rem;">已含分期與訂閱預扣</span>
+    </div>
+
+    <!-- 雙軌預算並排看板 -->
+    <div class="dual-budget-grid">
+      <!-- 指標 A：依刷卡日（控衝動） -->
+      <div class="budget-box track-a">
+        <div class="budget-box-header">
+          <span>🛒 A.依刷卡日(控衝動)</span>
+          <!-- 自繪日式口金零錢包 SVG -->
+          <svg width="24" height="24" viewBox="0 0 36 36" fill="none">
+            <circle cx="15" cy="7" r="3" fill="#FFFCF6" stroke="#3E3A39" stroke-width="2.5"/>
+            <circle cx="21" cy="7" r="3" fill="#FFFCF6" stroke="#3E3A39" stroke-width="2.5"/>
+            <path d="M7 14 C7 10, 29 10, 29 14 L32 26 C32 31, 4 31, 4 26 Z" fill="#F2A497" stroke="#3E3A39" stroke-width="2.8" stroke-linejoin="round"/>
+            <path d="M9 14 L27 14" stroke="#3E3A39" stroke-width="2.8"/>
+          </svg>
+        </div>
+        <span class="budget-remain-label">本月還可買：</span>
+        <span class="budget-remain-num" id="trackARemain">$0</span>
+        <div class="battery-bar" id="trackABattery"></div>
+        <div class="budget-detail-list">
+          <div class="budget-detail-row"><span>💵 本月現金:</span><strong id="trackACash">$0</strong></div>
+          <div class="budget-detail-row"><span>💳 本月新刷:</span><strong id="trackASwipe">$0</strong></div>
+          <div class="budget-detail-row"><span>🔄 分期+訂閱:</span><strong id="trackAFixed">$0</strong></div>
+        </div>
+      </div>
+
+      <!-- 指標 B：依繳款日（控現金流） -->
+      <div class="budget-box track-b">
+        <div class="budget-box-header">
+          <span>🏦 B.依繳款日(控現金)</span>
+          <!-- 自繪小豬撲滿 SVG -->
+          <svg width="24" height="24" viewBox="0 0 36 36" fill="none">
+            <ellipse cx="18" cy="20" rx="12" ry="9" fill="#B9DAA5" stroke="#3E3A39" stroke-width="2.8"/>
+            <rect x="4" y="17" width="4" height="6" rx="2" fill="#F2A497" stroke="#3E3A39" stroke-width="2.5"/>
+            <polygon points="14,12 12,7 18,11" fill="#B9DAA5" stroke="#3E3A39" stroke-width="2.5"/>
+            <line x1="16" y1="14" x2="22" y2="14" stroke="#3E3A39" stroke-width="2.8" stroke-linecap="round"/>
+            <circle cx="11" cy="18" r="1.8" fill="#3E3A39"/>
+            <line x1="13" y1="28" x2="13" y2="32" stroke="#3E3A39" stroke-width="2.8"/>
+            <line x1="23" y1="28" x2="23" y2="32" stroke="#3E3A39" stroke-width="2.8"/>
+          </svg>
+        </div>
+        <span class="budget-remain-label">繳卡費後剩餘現金：</span>
+        <span class="budget-remain-num" id="trackBRemain">$0</span>
+        <div class="battery-bar" id="trackBBattery"></div>
+        <div class="budget-detail-list">
+          <div class="budget-detail-row"><span>💵 本月現金:</span><strong id="trackBCash">$0</strong></div>
+          <div class="budget-detail-row"><span>🧾 本月應繳卡費:</span><strong id="trackBDueNow">$0</strong></div>
+          <div class="budget-detail-row" style="color:#3E3A39;border-top:1.5px dashed #3E3A39;margin-top:2px;padding-top:2px;">
+            <span>🔮 下月預估繳:</span><strong id="trackBDueNext">$0</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 極速記帳區 -->
+    <section class="storybook-card">
+      <div class="section-title">
+        <div class="section-title-left">
+          <!-- 自繪鋼筆 SVG -->
+          <svg width="22" height="22" viewBox="0 0 32 32" fill="none">
+            <path d="M6 26 L10 16 L22 4 L28 10 L16 22 Z" fill="#F6D27A" stroke="#3E3A39" stroke-width="2.8" stroke-linejoin="round"/>
+            <path d="M6 26 L12 22 L10 16 Z" fill="#FFFCF6" stroke="#3E3A39" stroke-width="2.5" stroke-linejoin="round"/>
+          </svg>
+          <span>快速記一筆</span>
+        </div>
+        <div>
+          <button type="button" id="modeExpenseBtn" class="btn btn-sm btn-yamabuki" onclick="setTxMode('expense')">➕ 一般支出</button>
+          <button type="button" id="modeRefundBtn" class="btn btn-sm" onclick="setTxMode('refund')">➖ 刷退折抵</button>
+        </div>
+      </div>
+
+      <!-- 金額與日期 -->
+      <div class="form-row">
+        <div>
+          <label class="label-sm">消費金額 ($)</label>
+          <input type="number" id="txAmount" class="input-field input-amount" placeholder="0" inputmode="numeric" oninput="updateSmartPreview()" />
+        </div>
+        <div>
+          <label class="label-sm">消費日期</label>
+          <input type="date" id="txDate" class="input-field" style="height:48px;" />
+        </div>
+      </div>
+
+      <!-- 付款方式（現金＋所有信用卡） -->
+      <label class="label-sm">付款方式（點選切換）</label>
+      <div class="pill-scroll" id="paymentMethodPills"></div>
+
+      <!-- 貼心微調開關（選信用卡時顯示） -->
+      <div id="creditSmartZone" style="display:none;">
+        <div class="smart-toggles">
+          <button type="button" class="toggle-chip" id="chipForeign" onclick="toggleSmartChip('foreign')">
+            🌐 +1.5% 海外手續費 <span id="foreignPreviewText"></span>
+          </button>
+          <button type="button" class="toggle-chip" id="chipSplit" onclick="toggleSmartChip('split')">
+            👥 幫人代墊/拆帳
+          </button>
+          <button type="button" class="toggle-chip" id="chipDelay" onclick="toggleSmartChip('delay')">
+            ⏭️ 壓線延至下期帳單
+          </button>
+        </div>
+
+        <!-- 展開：幫人代墊面板 -->
+        <div id="splitSubPanel" class="sub-panel" style="display:none;">
+          <div style="font-weight:bold;margin-bottom:4px;">👥 代墊雙軌計算（上方金額計入信用卡帳單）</div>
+          <label class="label-sm">我自己實際負擔金額（只扣此金額的個人預算）：</label>
+          <input type="number" id="txPersonalAmount" class="input-field" placeholder="例如聚餐刷3000，自己只出1000" inputmode="numeric" />
+        </div>
+      </div>
+
+      <!-- 分類選擇（含自訂圖示） -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+        <label class="label-sm" style="margin:0;">支出分類</label>
+        <button type="button" class="btn btn-sm btn-aqua" onclick="toggleNewCategoryBox()">➕ 新增自訂分類</button>
+      </div>
+
+      <!-- 展開新增自訂分類 -->
+      <div id="newCategoryBox" class="sub-panel" style="display:none;background:var(--yamabuki);">
+        <div class="form-row" style="grid-template-columns: 80px 1fr auto; align-items: end; margin-bottom:0;">
+          <div>
+            <label class="label-sm">Emoji 圖示</label>
+            <input type="text" id="newCatIcon" class="input-field" value="🍱" maxlength="4" style="text-align:center;" />
+          </div>
+          <div>
+            <label class="label-sm">分類名稱</label>
+            <input type="text" id="newCatName" class="input-field" placeholder="例：健身/運動" />
+          </div>
+          <button type="button" class="btn btn-bamboo" style="height:43px;" onclick="addCustomCategory()">儲存</button>
+        </div>
+      </div>
+
+      <div class="category-grid" id="categoryGrid"></div>
+
+      <!-- 備註與送出 -->
+      <div class="form-row" style="grid-template-columns: 1fr auto; margin-bottom:0;">
+        <input type="text" id="txNote" class="input-field" placeholder="備註（例：朋友聚餐、全聯採買）" />
+        <button type="button" class="btn btn-coral" onclick="submitTransaction()">✍️ 記帳存檔</button>
+      </div>
+    </section>
+
+    <!-- 本月近期明細 -->
+    <section class="storybook-card">
+      <div class="section-title">
+        <span>📒 本月消費明細（點擊 ⏭️ 可切換帳單期別）</span>
+        <span id="txCountBadge" style="font-size:0.8rem;">0 筆</span>
+      </div>
+      <div id="recentTxList"></div>
+    </section>
+  </div>
+
+  <!-- ==================== 分頁 2：十幾張信用卡週期看板 ==================== -->
+  <div id="tab-cards" class="tab-pane">
+    <section class="storybook-card" style="background:var(--aqua);">
+      <div class="section-title">
+        <div class="section-title-left">
+          <!-- 自繪手繪信用卡與算盤計算機 SVG -->
+          <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+            <rect x="3" y="8" width="26" height="18" rx="4" fill="#FFFCF6" stroke="#3E3A39" stroke-width="2.8"/>
+            <rect x="3" y="13" width="26" height="4" fill="#3E3A39"/>
+            <rect x="18" y="16" width="19" height="20" rx="4" fill="#F6D27A" stroke="#3E3A39" stroke-width="2.8"/>
+            <rect x="22" y="20" width="11" height="5" fill="#B9DAA5" stroke="#3E3A39" stroke-width="2"/>
+            <circle cx="24" cy="30" r="1.5" fill="#3E3A39"/><circle cx="28" cy="30" r="1.5" fill="#3E3A39"/><circle cx="32" cy="30" r="1.5" fill="#3E3A39"/>
+          </svg>
+          <span>各卡結帳週期與應繳總覽</span>
+        </div>
+        <span style="font-size:0.78rem;background:var(--washi-bg);padding:2px 8px;border:2px solid var(--ink-border);border-radius:99px;" id="cardsViewMonthBadge">2026/10</span>
+      </div>
+
+      <div class="cc-amounts-grid" style="margin-bottom:0;">
+        <div class="cc-amt-box">
+          <div>💰 <span id="ccSumNowLabel">10月</span>應繳卡費總計</div>
+          <div class="cc-amt-val" id="ccTotalDueNow">$0</div>
+          <div style="font-size:0.72rem;" id="ccUnpaidCountText">尚有 0 張未標記繳清</div>
+        </div>
+        <div class="cc-amt-box" style="border-left:2px dashed var(--ink-border);padding-left:8px;">
+          <div>🔮 <span id="ccSumNextLabel">11月</span>預估應繳總計</div>
+          <div class="cc-amt-val" id="ccTotalDueNext">$0</div>
+          <div style="font-size:0.72rem;">含下期分期與固定訂閱</div>
+        </div>
+      </div>
+    </section>
+
+    <div id="creditCardsContainer"></div>
+  </div>
+
+  <!-- ==================== 分頁 3：分期付款與定期訂閱 ==================== -->
+  <div id="tab-recurring" class="tab-pane">
+    <!-- 分期付款模組 -->
+    <section class="storybook-card">
+      <div class="section-title">
+        <div class="section-title-left">
+          <!-- 自繪日付印章與日曆 SVG -->
+          <svg width="26" height="26" viewBox="0 0 36 36" fill="none">
+            <rect x="5" y="7" width="26" height="24" rx="4" fill="#FFFCF6" stroke="#3E3A39" stroke-width="2.8"/>
+            <rect x="5" y="7" width="26" height="7" rx="2" fill="#F2A497" stroke="#3E3A39" stroke-width="2.8"/>
+            <line x1="12" y1="4" x2="12" y2="10" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/>
+            <line x1="24" y1="4" x2="24" y2="10" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="18" cy="22" r="5" fill="#F6D27A" stroke="#3E3A39" stroke-width="2.2"/>
+          </svg>
+          <span>信用卡分期付款（首期自動含尾差）</span>
+        </div>
+        <button class="btn btn-sm btn-yamabuki" onclick="toggleBox('addInstallmentBox')">➕ 新增分期</button>
+      </div>
+
+      <div id="addInstallmentBox" class="sub-panel" style="display:none;background:var(--yamabuki);">
+        <div class="form-row">
+          <div>
+            <label class="label-sm">分期項目名稱</label>
+            <input type="text" id="instName" class="input-field" placeholder="例：Switch 2 主機同捆組" />
+          </div>
+          <div>
+            <label class="label-sm">綁定信用卡</label>
+            <select id="instCard" class="select-field"></select>
+          </div>
+        </div>
+        <div class="form-row" style="grid-template-columns: 1fr 1fr 1fr;">
+          <div>
+            <label class="label-sm">分期總金額</label>
+            <input type="number" id="instTotal" class="input-field" placeholder="10000" inputmode="numeric" />
+          </div>
+          <div>
+            <label class="label-sm">總期數</label>
+            <input type="number" id="instPeriods" class="input-field" placeholder="6" inputmode="numeric" />
+          </div>
+          <div>
+            <label class="label-sm">首期繳款年月</label>
+            <input type="month" id="instStartYM" class="input-field" value="2026-09" />
+          </div>
+        </div>
+        <button class="btn btn-coral" style="width:100%;" onclick="addInstallment()">💾 儲存分期設定</button>
+      </div>
+
+      <div id="installmentList"></div>
+    </section>
+
+    <!-- 定期加值服務／訂閱模組 -->
+    <section class="storybook-card">
+      <div class="section-title">
+        <span>📺 每月固定扣款／加值服務（如網飛）</span>
+        <button class="btn btn-sm btn-aqua" onclick="toggleBox('addSubBox')">➕ 新增訂閱</button>
+      </div>
+
+      <div id="addSubBox" class="sub-panel" style="display:none;">
+        <div class="form-row">
+          <div>
+            <label class="label-sm">服務名稱</label>
+            <input type="text" id="subName" class="input-field" placeholder="例：Netflix 網飛" />
+          </div>
+          <div>
+            <label class="label-sm">綁定信用卡</label>
+            <select id="subCard" class="select-field"></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label class="label-sm">每月金額 ($)</label>
+            <input type="number" id="subAmount" class="input-field" placeholder="390" inputmode="numeric" />
+          </div>
+          <div>
+            <label class="label-sm">每月固定扣款日 (1~31)</label>
+            <input type="number" id="subDay" class="input-field" value="15" min="1" max="31" inputmode="numeric" />
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <label style="font-size:0.84rem;font-weight:bold;cursor:pointer;">
+            <input type="checkbox" id="subForeign" checked /> 🌐 屬於跨國收單（自動加計 1.5% 海外手續費）
+          </label>
+        </div>
+        <button class="btn btn-bamboo" style="width:100%;" onclick="addSubscription()">💾 儲存定期扣款</button>
+      </div>
+
+      <div id="subscriptionList"></div>
+    </section>
+  </div>
+
+  <!-- ==================== 分頁 4：設定與 Google 試算表免費同步 ==================== -->
+  <div id="tab-settings" class="tab-pane">
+    <!-- 預算與發薪日設定 -->
+    <section class="storybook-card">
+      <div class="section-title">⚙️ 預算上限與發薪週期設定</div>
+      <div class="form-row">
+        <div>
+          <label class="label-sm">每月可用總預算上限 ($)</label>
+          <input type="number" id="setBudgetLimit" class="input-field" inputmode="numeric" />
+        </div>
+        <div>
+          <label class="label-sm">每月發薪／預算起始日 (1~31號)</label>
+          <input type="number" id="setBudgetStartDay" class="input-field" min="1" max="31" inputmode="numeric" />
+        </div>
+      </div>
+      <button class="btn btn-bamboo" style="width:100%;" onclick="saveBudgetSettings()">✅ 更新預算與起始日</button>
+    </section>
+
+    <!-- 新增與管理十幾張信用卡 -->
+    <section class="storybook-card">
+      <div class="section-title">💳 新增／管理我的信用卡（支援十幾張卡）</div>
+      <div class="sub-panel" style="background:var(--yamabuki);">
+        <div class="form-row">
+          <div>
+            <label class="label-sm">卡片名稱</label>
+            <input type="text" id="newCardName" class="input-field" placeholder="例：聯邦吉鶴卡" />
+          </div>
+          <div>
+            <label class="label-sm">前期未記帳微調額 ($)</label>
+            <input type="number" id="newCardAdjust" class="input-field" value="0" title="首月啟用時可填入銀行APP目前已累積金額" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div>
+            <label class="label-sm">每月結帳日 (1~31)</label>
+            <input type="number" id="newCardClosing" class="input-field" placeholder="例：12" min="1" max="31" inputmode="numeric" />
+          </div>
+          <div>
+            <label class="label-sm">每月繳款截止日 (1~31)</label>
+            <input type="number" id="newCardDue" class="input-field" placeholder="例：27" min="1" max="31" inputmode="numeric" />
+          </div>
+        </div>
+        <button class="btn btn-coral" style="width:100%;" onclick="addCreditCard()">➕ 新增這張信用卡</button>
+      </div>
+      <div id="settingsCardList"></div>
+    </section>
+
+    <!-- 免費串接 Google Sheets 雲端同步 -->
+    <section class="storybook-card">
+      <div class="section-title">☁️ 免費串接 Google 試算表（換手機免煩惱）</div>
+      <p style="font-size:0.8rem;margin-top:0;">
+        資料預設即時保存在手機中。若要跨裝置同步至你個人的 Google Sheets（永久免費 $0），請輸入部署後的網頁應用程式網址：
+      </p>
+      <label class="label-sm">Google Apps Script (GAS) 網址</label>
+      <input type="url" id="gasUrlInput" class="input-field" placeholder="https://script.google.com/macros/s/....../exec" style="margin-bottom:8px;" />
+      <div class="form-row">
+        <button class="btn btn-aqua" onclick="syncToGoogleSheets('upload')">⬆️ 備份至試算表</button>
+        <button class="btn btn-bamboo" onclick="syncToGoogleSheets('download')">⬇️ 從試算表還原</button>
+      </div>
+
+      <details style="margin-top:10px;font-size:0.8rem;">
+        <summary style="font-weight:bold;cursor:pointer;">📖 點此展開：3 分鐘免費串接 Google 試算表教學與程式碼</summary>
+        <div style="margin-top:8px;">
+          <ol style="padding-left:18px;margin:4px 0 8px;">
+            <li>在你的 Google 雲端硬碟新增一個空白「Google 試算表」。</li>
+            <li>點選上方選單「擴充功能」➔「Apps Script」，將下方程式碼貼上並儲存。</li>
+            <li>點選右上角「部署」➔「新增部署作業」➔ 類型選「網頁應用程式」➔ 誰可以存取選「所有人」➔ 複製網址貼回上方欄位即可！</li>
+          </ol>
+          <div class="code-box" id="gasCodeBox">function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var payload = JSON.parse(e.postData.contents);
+  sheet.getRange("A1").setValue(JSON.stringify(payload.data));
+  sheet.getRange("B1").setValue(new Date().toISOString());
+  return ContentService.createTextOutput(JSON.stringify({status: "ok"})).setMimeType(ContentService.MimeType.JSON);
+}
+function doGet(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+  var raw = sheet.getRange("A1").getValue();
+  return ContentService.createTextOutput(raw || "{}").setMimeType(ContentService.MimeType.JSON);
+}</div>
+          <button class="btn btn-sm btn-yamabuki" onclick="copyGasCode()">📋 一鍵複製 GAS 程式碼</button>
+        </div>
+      </details>
+    </section>
+
+    <!-- 匯出備份與清除測試資料 -->
+    <section class="storybook-card">
+      <div class="section-title">🧰 資料備份與初始化</div>
+      <div class="form-row">
+        <button class="btn btn-sm" onclick="exportJsonBackup()">📦 匯出備份檔 (.json)</button>
+        <button class="btn btn-sm btn-coral" onclick="resetToCleanOrDemo()">🧹 清空模擬資料重頭開始</button>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- 底部繪本固定導覽列 -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <button class="nav-btn active" onclick="switchTab('home', this)">
+      <span>🏠</span><span>記帳與預算</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('cards', this)">
+      <span>💳</span><span>卡片週期</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('recurring', this)">
+      <span>🔄</span><span>分期與訂閱</span>
+    </button>
+    <button class="nav-btn" onclick="switchTab('settings', this)">
+      <span>⚙️</span><span>設定與同步</span>
+    </button>
+  </div>
+</nav>
+
+<script>
+  // ==================== 系統基準日與預設資料（基準：2026-10-27） ====================
+  const STORAGE_KEY = 'storybook_kakeibo_v1';
+  let currentViewYM = '2026-10'; // 當前檢視年月
+  let txMode = 'expense';        // 'expense' | 'refund'
+  let selectedPayment = 'cash';  // 'cash' | card.id
+  let selectedCategory = '🍽️ 餐飲';
+  let smartFlags = { foreign: false, split: false, delay: false };
+
+  const defaultState = {
+    budgetLimit: 30000,
+    budgetStartDay: 1,
+    gasUrl: '',
+    categories: [
+      { icon: '🍽️', name: '餐飲' },
+      { icon: '🧋', name: '飲品/茶飲' },
+      { icon: '🛵', name: '交通/加油' },
+      { icon: '🏪', name: '超商/超市' },
+      { icon: '🛍️', name: '日常購物' },
+      { icon: '🎮', name: '娛樂/遊戲' },
+      { icon: '📺', name: '數位訂閱' },
+      { icon: '🏠', name: '居家/帳單' },
+      { icon: '🍻', name: '聚餐/社交' },
+      { icon: '💊', name: '醫療/保健' },
+      { icon: '✈️', name: '旅遊/住宿' },
+      { icon: '📦', name: '其他' }
+    ],
+    cards: [
+      { id: 'c1', name: '台新 @GoGo卡', closingDay: 12, dueDay: 27, manualAdjust: 0, paidMonths: {} },
+      { id: 'c2', name: '國泰 CUBE卡', closingDay: 5, dueDay: 20, manualAdjust: 0, paidMonths: { '2026-10': true } },
+      { id: 'c3', name: '玉山 UBear卡', closingDay: 20, dueDay: 5, manualAdjust: 0, paidMonths: { '2026-10': true } },
+      { id: 'c4', name: '富邦 J卡', closingDay: 17, dueDay: 2, manualAdjust: 0, paidMonths: {} }
+    ],
+    installments: [
+      { id: 'i1', name: 'Switch 2 同捆預購分期', cardId: 'c1', totalAmount: 14500, periods: 6, firstDueMonth: '2026-09' },
+      { id: 'i2', name: '家電添購分期(含首期尾差示範)', cardId: 'c2', totalAmount: 10000, periods: 3, firstDueMonth: '2026-10' }
+    ],
+    subscriptions: [
+      { id: 's1', name: 'Netflix 網飛', cardId: 'c3', amount: 390, billingDay: 15, foreignFee: true },
+      { id: 's2', name: 'YouTube Premium', cardId: 'c1', amount: 199, billingDay: 8, foreignFee: false },
+      { id: 's3', name: 'Google AI Pro 雲端', cardId: 'c2', amount: 650, billingDay: 18, foreignFee: false }
+    ],
+    transactions: [
+      // 10月應繳週期內之消費（9/13~10/12 台新@GoGo 結帳，10/27 應繳）
+      { id: 't1', date: '2026-10-04', amount: 1850, personalAmount: 1850, payment: 'c1', category: '🛍️ 日常購物', note: '無印良品收納補給', foreign: false, split: false, delayToNext: false, isRefund: false },
+      // 10/13 之後刷台新@GoGo（12號結帳），自動歸入 11月應繳帳單
+      { id: 't2', date: '2026-10-19', amount: 3000, personalAmount: 1000, payment: 'c1', category: '🍻 聚餐/社交', note: '火鍋聚餐先幫忙刷卡代墊', foreign: false, split: true, delayToNext: false, isRefund: false },
+      // 國泰 CUBE (5號結帳/20號繳款)，10/02 刷屬於 10月應繳
+      { id: 't3', date: '2026-10-02', amount: 2100, personalAmount: 2100, payment: 'c2', category: '🏪 超商/超市', note: '超市食材採買', foreign: false, split: false, delayToNext: false, isRefund: false },
+      // 現金支出
+      { id: 't4', date: '2026-10-25', amount: 1450, personalAmount: 1450, payment: 'cash', category: '🍽️ 餐飲', note: '平日午餐與無糖茶飲', foreign: false, split: false, delayToNext: false, isRefund: false }
+    ]
+  };
+
+  let state = loadState();
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return JSON.parse(JSON.stringify(defaultState));
+  }
+
+  function saveState() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    renderAll();
+  }
+
+  // ==================== 日期與信用卡結帳週期核心演算法 ====================
+  function parseYM(ymStr) {
+    const [y, m] = ymStr.split('-').map(Number);
+    return { y, m };
+  }
+
+  function formatYM(y, m) {
+    return `${y}-${String(m).padStart(2, '0')}`;
+  }
+
+  function addMonths(y, m, delta) {
+    const d = new Date(y, m - 1 + delta, 1);
+    return { y: d.getFullYear(), m: d.getMonth() + 1 };
+  }
+
+  // 處理大小月與 2 月底日期溢出防呆
+  function clampDay(y, m, day) {
+    const lastDay = new Date(y, m, 0).getDate();
+    return Math.min(day, lastDay);
+  }
+
+  function formatFullDate(y, m, d) {
+    return `${y}-${String(m).padStart(2, '0')}-${String(clampDay(y, m, d)).padStart(2, '0')}`;
+  }
+
+  function monthDiff(startYM, targetYM) {
+    const s = parseYM(startYM);
+    const t = parseYM(targetYM);
+    return (t.y - s.y) * 12 + (t.m - s.m);
+  }
+
+  /**
+   * 給定一筆刷卡日期 (YYYY-MM-DD) 與信用卡設定，精準算出該筆消費「要在哪一個年月 (dueYM) 繳款」
+   * 邏輯：
+   * 1. 先算屬於哪一個結帳年月 (closingYM)：若消費日 <= 結帳日，為當月結帳；若 > 結帳日，為次月結帳。
+   * 2. 若勾選「⏭️ 壓線延至下期」，結帳月再 +1。
+   * 3. 若卡片「繳款日 > 結帳日」(例如 12號結帳、27號繳款)，則繳款月 = 結帳月；
+   *    若「繳款日 <= 結帳日」(例如 20號結帳、隔月5號繳款)，則繳款月 = 結帳月 + 1。
+   */
+  function getDueYMForTransaction(txDateStr, card, delayToNext = false) {
+    const [ty, tm, td] = txDateStr.split('-').map(Number);
+    const effClosing = clampDay(ty, tm, card.closingDay);
+    let closeY = ty, closeM = tm;
+    if (td > effClosing) {
+      const next = addMonths(ty, tm, 1);
+      closeY = next.y; closeM = next.m;
+    }
+    if (delayToNext) {
+      const next = addMonths(closeY, closeM, 1);
+      closeY = next.y; closeM = next.m;
+    }
+    if (card.dueDay > card.closingDay) {
+      return formatYM(closeY, closeM);
+    } else {
+      const due = addMonths(closeY, closeM, 1);
+      return formatYM(due.y, due.m);
+    }
+  }
+
+  /**
+   * 給定目標「繳款年月 (dueYM)」與卡片，反推該期帳單的「結帳區間 (起日 ~ 迄日)」與「繳款截止日」
+   */
+  function getCycleRangeForDueYM(dueYM, card) {
+    const { y: dy, m: dm } = parseYM(dueYM);
+    let closeY = dy, closeM = dm;
+    if (card.dueDay <= card.closingDay) {
+      const prev = addMonths(dy, dm, -1);
+      closeY = prev.y; closeM = prev.m;
+    }
+    const endDay = clampDay(closeY, closeM, card.closingDay);
+    const prevClose = addMonths(closeY, closeM, -1);
+    const prevEndDay = clampDay(prevClose.y, prevClose.m, card.closingDay);
+    const startDateObj = new Date(prevClose.y, prevClose.m - 1, prevEndDay + 1);
+    const sy = startDateObj.getFullYear();
+    const sm = startDateObj.getMonth() + 1;
+    const sd = startDateObj.getDate();
+
+    return {
+      startStr: `${String(sm).padStart(2,'0')}/${String(sd).padStart(2,'0')}`,
+      endStr: `${String(closeM).padStart(2,'0')}/${String(endDay).padStart(2,'0')}`,
+      dueDateFull: formatFullDate(dy, dm, card.dueDay),
+      dueStr: `${String(dm).padStart(2,'0')}/${String(clampDay(dy, dm, card.dueDay)).padStart(2,'0')}`
+    };
+  }
+
+  // 計算特定分期在目標繳款年月 (dueYM) 的單期應繳金額（首期自動含尾差）
+  function getInstallmentAmountForYM(inst, targetYM) {
+    const diff = monthDiff(inst.firstDueMonth, targetYM);
+    const periodNo = diff + 1;
+    if (periodNo < 1 || periodNo > inst.periods) return { active: false, amount: 0, periodNo: 0 };
+    const base = Math.floor(inst.totalAmount / inst.periods);
+    const remainder = inst.totalAmount - base * inst.periods;
+    const amount = (periodNo === 1) ? (base + remainder) : base;
+    return { active: true, amount, periodNo };
+  }
+
+  // 計算預算週期起迄日（依使用者設定的發薪日 budgetStartDay）
+  function getBudgetPeriodRange(ymStr) {
+    const { y, m } = parseYM(ymStr);
+    const startDay = state.budgetStartDay || 1;
+    const sDay = clampDay(y, m, startDay);
+    const startFull = formatFullDate(y, m, sDay);
+
+    let endFull;
+    if (startDay === 1) {
+      const lastD = clampDay(y, m, 31);
+      endFull = formatFullDate(y, m, lastD);
+    } else {
+      const next = addMonths(y, m, 1);
+      const nextStartObj = new Date(next.y, next.m - 1, clampDay(next.y, next.m, startDay));
+      nextStartObj.setDate(nextStartObj.getDate() - 1);
+      endFull = `${nextStartObj.getFullYear()}-${String(nextStartObj.getMonth()+1).padStart(2,'0')}-${String(nextStartObj.getDate()).padStart(2,'0')}`;
+    }
+    return { startFull, endFull };
+  }
+
+  // 計算單張信用卡在指定「繳款年月 (dueYM)」的帳單總額與明細
+  function getCardBillForDueYM(card, dueYM) {
+    let total = 0;
+    const items = [];
+
+    // 1. 一般刷卡與刷退
+    state.transactions.forEach(tx => {
+      if (tx.payment !== card.id) return;
+      const txDueYM = getDueYMForTransaction(tx.date, card, tx.delayToNext);
+      if (txDueYM === dueYM) {
+        const sign = tx.isRefund ? -1 : 1;
+        const amt = tx.amount * sign;
+        total += amt;
+        items.push({
+          type: 'tx',
+          id: tx.id,
+          date: tx.date.slice(5),
+          title: `${tx.category} ${tx.note || ''}`.trim(),
+          amount: amt,
+          personalAmount: (tx.personalAmount ?? tx.amount) * sign,
+          split: tx.split,
+          foreign: tx.foreign,
+          delayToNext: tx.delayToNext
+        });
+      }
+    });
+
+    // 2. 分期付款
+    state.installments.filter(i => i.cardId === card.id).forEach(inst => {
+      const res = getInstallmentAmountForYM(inst, dueYM);
+      if (res.active) {
+        total += res.amount;
+        items.push({
+          type: 'inst',
+          date: '分期',
+          title: `🔄 ${inst.name} (${res.periodNo}/${inst.periods}期)`,
+          amount: res.amount,
+          personalAmount: res.amount
+        });
+      }
+    });
+
+    // 3. 定期訂閱（依每月扣款日判斷歸屬哪期帳單）
+    const { y, m } = parseYM(dueYM);
+    // 檢查前一個月、當月、後一個月的訂閱扣款日哪一筆落在 dueYM 繳款
+    [-1, 0, 1].forEach(offset => {
+      const subM = addMonths(y, m, offset);
+      state.subscriptions.filter(s => s.cardId === card.id).forEach(sub => {
+        const subDateFull = formatFullDate(subM.y, subM.m, sub.billingDay);
+        if (getDueYMForTransaction(subDateFull, card, false) === dueYM) {
+          const fee = sub.foreignFee ? Math.round(sub.amount * 0.015) : 0;
+          const finalAmt = sub.amount + fee;
+          total += finalAmt;
+          items.push({
+            type: 'sub',
+            date: subDateFull.slice(5),
+            title: `📺 ${sub.name}${sub.foreignFee ? ' (含1.5%海外)' : ''}`,
+            amount: finalAmt,
+            personalAmount: finalAmt
+          });
+        }
+      });
+    });
+
+    // 4. 首月啟用微調額（僅套用於 2026-10 方便接軌）
+    if (dueYM === '2026-10' && card.manualAdjust) {
+      total += Number(card.manualAdjust);
+      items.push({
+        type: 'adjust',
+        date: '前期',
+        title: '📌 前期未記帳手動微調額',
+        amount: Number(card.manualAdjust),
+        personalAmount: Number(card.manualAdjust)
+      });
+    }
+
+    return { total, items };
+  }
+
+  // ==================== 畫面渲染邏輯 ====================
+  function renderBattery(elId, usedAmount, limitAmount) {
+    const container = document.getElementById(elId);
+    const ratio = limitAmount > 0 ? Math.max(0, Math.min(1, (limitAmount - usedAmount) / limitAmount)) : 0;
+    const filledCells = Math.round(ratio * 10);
+    let colorClass = 'filled-safe';
+    if (filledCells <= 2) colorClass = 'filled-danger';
+    else if (filledCells <= 5) colorClass = 'filled-warn';
+
+    let html = '';
+    for (let i = 0; i < 10; i++) {
+      html += `<div class="battery-cell ${i < filledCells ? colorClass : ''}"></div>`;
+    }
+    container.innerHTML = html;
+  }
+
+  function renderAll() {
+    const { y, m } = parseYM(currentViewYM);
+    const nextYMObj = addMonths(y, m, 1);
+    const nextYM = formatYM(nextYMObj.y, nextYMObj.m);
+
+    document.getElementById('currentMonthLabel').textContent = `${y}/${String(m).padStart(2,'0')}`;
+    const period = getBudgetPeriodRange(currentViewYM);
+    document.getElementById('budgetCycleText').textContent = `預算週期: ${period.startFull.slice(5)} ~ ${period.endFull.slice(5)}`;
+    document.getElementById('topBudgetLimit').textContent = state.budgetLimit.toLocaleString();
+
+    // 1. 計算本週期現金支出與本週期新刷卡（個人實付額）
+    let cashTotal = 0;
+    let swipeNewPersonalTotal = 0;
+
+    state.transactions.forEach(tx => {
+      if (tx.date >= period.startFull && tx.date <= period.endFull) {
+        const sign = tx.isRefund ? -1 : 1;
+        const pAmt = (tx.personalAmount ?? tx.amount) * sign;
+        if (tx.payment === 'cash') cashTotal += pAmt;
+        else swipeNewPersonalTotal += pAmt;
+      }
+    });
+
+    // 本月分期單期總和 ＋ 本月固定訂閱總和
+    let fixedInstTotal = 0;
+    state.installments.forEach(inst => {
+      const res = getInstallmentAmountForYM(inst, currentViewYM);
+      if (res.active) fixedInstTotal += res.amount;
+    });
+
+    let fixedSubTotal = 0;
+    state.subscriptions.forEach(sub => {
+      const fee = sub.foreignFee ? Math.round(sub.amount * 0.015) : 0;
+      fixedSubTotal += (sub.amount + fee);
+    });
+
+    const fixedCombined = fixedInstTotal + fixedSubTotal;
+    document.getElementById('fixedPreDeductText').textContent =
+      `已含分期 $${fixedInstTotal.toLocaleString()} + 訂閱 $${fixedSubTotal.toLocaleString()}`;
+
+    // 指標 A：依刷卡日（控衝動）
+    const usedA = cashTotal + swipeNewPersonalTotal + fixedCombined;
+    const remainA = state.budgetLimit - usedA;
+    const elRemainA = document.getElementById('trackARemain');
+    elRemainA.textContent = `$${remainA.toLocaleString()}`;
+    elRemainA.className = 'budget-remain-num' + (remainA < 0 ? ' danger' : '');
+    document.getElementById('trackACash').textContent = `$${cashTotal.toLocaleString()}`;
+    document.getElementById('trackASwipe').textContent = `$${swipeNewPersonalTotal.toLocaleString()}`;
+    document.getElementById('trackAFixed').textContent = `$${fixedCombined.toLocaleString()}`;
+    renderBattery('trackABattery', usedA, state.budgetLimit);
+
+    // 指標 B：依繳款日（控現金流）
+    let dueNowAllCards = 0;
+    let dueNextAllCards = 0;
+    state.cards.forEach(card => {
+      dueNowAllCards += getCardBillForDueYM(card, currentViewYM).total;
+      dueNextAllCards += getCardBillForDueYM(card, nextYM).total;
+    });
+
+    const usedB = cashTotal + dueNowAllCards;
+    const remainB = state.budgetLimit - usedB;
+    const elRemainB = document.getElementById('trackBRemain');
+    elRemainB.textContent = `$${remainB.toLocaleString()}`;
+    elRemainB.className = 'budget-remain-num' + (remainB < 0 ? ' danger' : '');
+    document.getElementById('trackBCash').textContent = `$${cashTotal.toLocaleString()}`;
+    document.getElementById('trackBDueNow').textContent = `$${dueNowAllCards.toLocaleString()}`;
+    document.getElementById('trackBDueNext').textContent = `$${dueNextAllCards.toLocaleString()}`;
+    renderBattery('trackBBattery', usedB, state.budgetLimit);
+
+    renderPaymentPills();
+    renderCategories();
+    renderRecentTransactions(period);
+    renderCreditCardsTab(currentViewYM, nextYM, dueNowAllCards, dueNextAllCards);
+    renderRecurringTab(currentViewYM);
+    renderSettingsTab();
+  }
+
+  function renderPaymentPills() {
+    const wrap = document.getElementById('paymentMethodPills');
+    let html = `<button type="button" class="pill-btn ${selectedPayment === 'cash' ? 'active' : ''}" onclick="selectPayment('cash')">💵 現金支出</button>`;
+    state.cards.forEach(c => {
+      const active = selectedPayment === c.id ? 'active-coral' : '';
+      html += `<button type="button" class="pill-btn ${active}" onclick="selectPayment('${c.id}')">💳 ${c.name} (${c.closingDay}結/${c.dueDay}繳)</button>`;
+    });
+    wrap.innerHTML = html;
+    document.getElementById('creditSmartZone').style.display = (selectedPayment === 'cash') ? 'none' : 'block';
+  }
+
+  function renderCategories() {
+    const grid = document.getElementById('categoryGrid');
+    grid.innerHTML = state.categories.map(cat => {
+      const full = `${cat.icon} ${cat.name}`;
+      const isAct = selectedCategory === full ? 'active' : '';
+      return `<button type="button" class="pill-btn ${isAct}" onclick="selectCategory('${full}')">${cat.icon}<br><span style="font-size:0.74rem;">${cat.name}</span></button>`;
+    }).join('');
+  }
+
+  function renderRecentTransactions(period) {
+    const list = document.getElementById('recentTxList');
+    const filtered = state.transactions
+      .filter(tx => tx.date >= period.startFull && tx.date <= period.endFull)
+      .sort((a, b) => b.date.localeCompare(a.date));
+
+    document.getElementById('txCountBadge').textContent = `${filtered.length} 筆`;
+    if (!filtered.length) {
+      list.innerHTML = `<div style="text-align:center;padding:14px;font-size:0.84rem;color:var(--muted-ink);">這個週期還沒有記帳紀錄喔！</div>`;
+      return;
+    }
+
+    list.innerHTML = filtered.map(tx => {
+      const cardObj = state.cards.find(c => c.id === tx.payment);
+      const payName = cardObj ? `💳 ${cardObj.name}` : '💵 現金';
+      const dueBadge = cardObj
+        ? `<span class="tx-badge">${getDueYMForTransaction(tx.date, cardObj, tx.delayToNext).slice(5)}月繳</span>`
+        : '';
+      const splitBadge = tx.split
+        ? `<span class="tx-badge" style="background:var(--aqua);">代墊(實付$${tx.personalAmount})</span>`
+        : '';
+
+      return `
+        <div class="tx-item">
+          <div>
+            <div style="font-weight:bold;">${tx.category} ${tx.note || ''} ${dueBadge} ${splitBadge}</div>
+            <div style="font-size:0.74rem;color:var(--muted-ink);">${tx.date} ｜ ${payName}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <strong style="font-size:1rem;color:${tx.isRefund ? '#2d6a4f' : '#3E3A39'};">
+              ${tx.isRefund ? '-' : ''}$${tx.amount.toLocaleString()}
+            </strong>
+            ${cardObj ? `<button class="btn btn-sm" title="壓線晚請款？點此切換至下期帳單" onclick="toggleTxDelay('${tx.id}')">${tx.delayToNext ? '⏭️已延期' : '⏭️'}</button>` : ''}
+            <button class="btn btn-sm btn-coral" onclick="deleteTx('${tx.id}')">✕</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 分頁 2：十幾張信用卡動態排序與結帳週期明細
+  function renderCreditCardsTab(currYM, nextYM, sumNow, sumNext) {
+    const { m } = parseYM(currYM);
+    const { m: nm } = parseYM(nextYM);
+    document.getElementById('cardsViewMonthBadge').textContent = `檢視月份：${currYM}`;
+    document.getElementById('ccSumNowLabel').textContent = `${m}月`;
+    document.getElementById('ccSumNextLabel').textContent = `${nm}月`;
+    document.getElementById('ccTotalDueNow').textContent = `$${sumNow.toLocaleString()}`;
+    document.getElementById('ccTotalDueNext').textContent = `$${sumNext.toLocaleString()}`;
+
+    const todayStr = '2026-10-27'; // 系統基準日
+    let unpaidCount = 0;
+
+    // 智慧排序：未繳清且距離繳款日 5 天內置頂
+    const enrichedCards = state.cards.map(card => {
+      const billNow = getCardBillForDueYM(card, currYM);
+      const billNext = getCardBillForDueYM(card, nextYM);
+      const cycleNow = getCycleRangeForDueYM(currYM, card);
+      const cycleNext = getCycleRangeForDueYM(nextYM, card);
+      const isPaid = !!(card.paidMonths && card.paidMonths[currYM]);
+      if (!isPaid && billNow.total > 0) unpaidCount++;
+
+      const diffDays = Math.ceil((new Date(cycleNow.dueDateFull) - new Date(todayStr)) / 86400000);
+      const isUrgent = !isPaid && billNow.total > 0 && diffDays >= -3 && diffDays <= 5;
+
+      return { card, billNow, billNext, cycleNow, cycleNext, isPaid, isUrgent, diffDays };
+    }).sort((a, b) => (b.isUrgent - a.isUrgent) || (a.isPaid - b.isPaid));
+
+    document.getElementById('ccUnpaidCountText').textContent = `尚有 ${unpaidCount} 張有帳單未標記繳清`;
+
+    const container = document.getElementById('creditCardsContainer');
+    container.innerHTML = enrichedCards.map(({ card, billNow, billNext, cycleNow, cycleNext, isPaid, isUrgent }) => {
+      const statusClass = isPaid ? 'paid' : (isUrgent ? 'urgent' : '');
+      const statusTag = isPaid
+        ? `<span class="cc-cycle-badge" style="background:var(--bamboo);">✅ ${m}月帳單已繳清</span>`
+        : (isUrgent ? `<span class="cc-cycle-badge" style="background:var(--yamabuki);">🚨 即將到期 (${cycleNow.dueStr}繳款)</span>` : '');
+
+      return `
+        <div class="cc-card ${statusClass}">
+          <div class="cc-top">
+            <div>
+              <div class="cc-name">💳 ${card.name} ${statusTag}</div>
+              <span class="cc-cycle-badge">每月 ${card.closingDay} 號結帳 ／ ${card.dueDay} 號繳款</span>
+            </div>
+            <button class="btn btn-sm ${isPaid ? '' : 'btn-bamboo'}" onclick="toggleCardPaid('${card.id}', '${currYM}')">
+              ${isPaid ? '↩️ 取消已繳' : `✅ 標記${m}月已繳`}
+            </button>
+          </div>
+
+          <div class="cc-amounts-grid">
+            <div class="cc-amt-box">
+              <div style="font-weight:bold;">🧾 ${m}月應繳 (${cycleNow.startStr}~${cycleNow.endStr})</div>
+              <div class="cc-amt-val">$${billNow.total.toLocaleString()}</div>
+              <div style="font-size:0.72rem;">繳款截止：${cycleNow.dueStr}</div>
+            </div>
+            <div class="cc-amt-box" style="border-left:2px dashed var(--ink-border);padding-left:8px;">
+              <div style="font-weight:bold;">🔮 ${nm}月預估 (${cycleNext.startStr}~${cycleNext.endStr})</div>
+              <div class="cc-amt-val">$${billNext.total.toLocaleString()}</div>
+              <div style="font-size:0.72rem;">下期截止：${cycleNext.dueStr}</div>
+            </div>
+          </div>
+
+          <details style="font-size:0.8rem;background:var(--washi-bg);border:2px solid var(--ink-border);border-radius:10px;padding:6px 10px;">
+            <summary style="font-weight:bold;cursor:pointer;">🔍 展開查看此卡【${m}月應繳】與【${nm}月預估】刷卡明細</summary>
+            <div style="margin-top:6px;">
+              <div style="font-weight:bold;color:var(--ink-border);margin-bottom:4px;">📌 ${m}月應繳明細 (${cycleNow.startStr}~${cycleNow.endStr})：</div>
+              ${billNow.items.length ? billNow.items.map(i => `
+                <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dashed #ccc;">
+                  <span>${i.date} ${i.title}</span><strong>$${i.amount.toLocaleString()}</strong>
+                </div>`).join('') : '<div style="color:var(--muted-ink);">無消費紀錄</div>'}
+
+              <div style="font-weight:bold;color:var(--ink-border);margin:8px 0 4px;">🔮 ${nm}月預估明細 (${cycleNext.startStr}~${cycleNext.endStr})：</div>
+              ${billNext.items.length ? billNext.items.map(i => `
+                <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dashed #ccc;">
+                  <span>${i.date} ${i.title}</span><strong>$${i.amount.toLocaleString()}</strong>
+                </div>`).join('') : '<div style="color:var(--muted-ink);">尚無累積紀錄</div>'}
+            </div>
+          </details>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 分頁 3：分期與訂閱渲染
+  function renderRecurringTab(currYM) {
+    const cardOpts = state.cards.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+    document.getElementById('instCard').innerHTML = cardOpts;
+    document.getElementById('subCard').innerHTML = cardOpts;
+
+    const instList = document.getElementById('installmentList');
+    instList.innerHTML = state.installments.map(inst => {
+      const card = state.cards.find(c => c.id === inst.cardId);
+      const res = getInstallmentAmountForYM(inst, currYM);
+      const base = Math.floor(inst.totalAmount / inst.periods);
+      const firstAmt = base + (inst.totalAmount - base * inst.periods);
+      const statusText = res.active
+        ? `<span class="tx-badge" style="background:var(--bamboo);">本月第 ${res.periodNo}/${inst.periods} 期 ($${res.amount.toLocaleString()})</span>`
+        : `<span class="tx-badge" style="background:#eee;">此月份無扣款</span>`;
+
+      return `
+        <div class="tx-item">
+          <div>
+            <div style="font-weight:bold;">🔄 ${inst.name} ${statusText}</div>
+            <div style="font-size:0.75rem;color:var(--muted-ink);">
+              💳 ${card ? card.name : ''} ｜ 總額 $${inst.totalAmount.toLocaleString()} (首期$${firstAmt}/續期$${base}) ｜ 首期:${inst.firstDueMonth}
+            </div>
+          </div>
+          <button class="btn btn-sm btn-coral" onclick="deleteInstallment('${inst.id}')">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    const subList = document.getElementById('subscriptionList');
+    subList.innerHTML = state.subscriptions.map(sub => {
+      const card = state.cards.find(c => c.id === sub.cardId);
+      const fee = sub.foreignFee ? Math.round(sub.amount * 0.015) : 0;
+      const total = sub.amount + fee;
+      return `
+        <div class="tx-item">
+          <div>
+            <div style="font-weight:bold;">📺 ${sub.name} ${sub.foreignFee ? `<span class="tx-badge" style="background:var(--aqua);">含海外1.5% (+$${fee})</span>` : ''}</div>
+            <div style="font-size:0.75rem;color:var(--muted-ink);">
+              💳 ${card ? card.name : ''} ｜ 每月 ${sub.billingDay} 號扣款
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <strong>$${total.toLocaleString()}/月</strong>
+            <button class="btn btn-sm btn-coral" onclick="deleteSubscription('${sub.id}')">✕</button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // 分頁 4：設定頁面渲染
+  function renderSettingsTab() {
+    document.getElementById('setBudgetLimit').value = state.budgetLimit;
+    document.getElementById('setBudgetStartDay').value = state.budgetStartDay || 1;
+    document.getElementById('gasUrlInput').value = state.gasUrl || '';
+
+    const list = document.getElementById('settingsCardList');
+    list.innerHTML = state.cards.map(c => `
+      <div class="tx-item">
+        <div>
+          <strong>💳 ${c.name}</strong>
+          <div style="font-size:0.75rem;color:var(--muted-ink);">每月 ${c.closingDay} 號結帳 ／ ${c.dueDay} 號繳款 ${c.manualAdjust ? `｜ 前期微調:$${c.manualAdjust}` : ''}</div>
+        </div>
+        <button class="btn btn-sm btn-coral" onclick="deleteCard('${c.id}')">刪除</button>
+      </div>
+    `).join('');
+  }
+
+  // ==================== 互動操作函式 ====================
+  function switchTab(tabName, btnEl) {
+    document.querySelectorAll('.tab-pane').forEach(p => p.classList.remove('active'));
+    document.getElementById(`tab-${tabName}`).classList.add('active');
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    btnEl.classList.add('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  function changeMonth(delta) {
+    const { y, m } = parseYM(currentViewYM);
+    const next = addMonths(y, m, delta);
+    currentViewYM = formatYM(next.y, next.m);
+    renderAll();
+  }
+
+  function setTxMode(mode) {
+    txMode = mode;
+    document.getElementById('modeExpenseBtn').className = 'btn btn-sm ' + (mode === 'expense' ? 'btn-yamabuki' : '');
+    document.getElementById('modeRefundBtn').className = 'btn btn-sm ' + (mode === 'refund' ? 'btn-bamboo' : '');
+  }
+
+  function selectPayment(payId) {
+    selectedPayment = payId;
+    renderPaymentPills();
+  }
+
+  function selectCategory(catFull) {
+    selectedCategory = catFull;
+    renderCategories();
+  }
+
+  function toggleSmartChip(type) {
+    smartFlags[type] = !smartFlags[type];
+    document.getElementById('chipForeign').classList.toggle('on', smartFlags.foreign);
+    document.getElementById('chipSplit').classList.toggle('on', smartFlags.split);
+    document.getElementById('chipDelay').classList.toggle('on', smartFlags.delay);
+    document.getElementById('splitSubPanel').style.display = smartFlags.split ? 'block' : 'none';
+    updateSmartPreview();
+  }
+
+  function updateSmartPreview() {
+    const raw = Number(document.getElementById('txAmount').value) || 0;
+    const previewEl = document.getElementById('foreignPreviewText');
+    if (smartFlags.foreign && raw > 0) {
+      const fee = Math.round(raw * 0.015);
+      previewEl.textContent = `(實入帳 $${(raw + fee).toLocaleString()})`;
+    } else {
+      previewEl.textContent = '';
+    }
+  }
+
+  function toggleNewCategoryBox() {
+    const box = document.getElementById('newCategoryBox');
+    box.style.display = box.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function addCustomCategory() {
+    const icon = document.getElementById('newCatIcon').value.trim() || '🏷️';
+    const name = document.getElementById('newCatName').value.trim();
+    if (!name) return alert('請輸入分類名稱！');
+    state.categories.push({ icon, name });
+    selectedCategory = `${icon} ${name}`;
+    document.getElementById('newCatName').value = '';
+    document.getElementById('newCategoryBox').style.display = 'none';
+    saveState();
+  }
+
+  function submitTransaction() {
+    const rawAmt = Number(document.getElementById('txAmount').value);
+    const dateStr = document.getElementById('txDate').value;
+    const note = document.getElementById('txNote').value.trim();
+    if (!rawAmt || rawAmt <= 0) return alert('請輸入有效的消費金額！');
+    if (!dateStr) return alert('請選擇消費日期！');
+
+    const isCredit = selectedPayment !== 'cash';
+    const fee = (isCredit && smartFlags.foreign) ? Math.round(rawAmt * 0.015) : 0;
+    const finalBillAmount = rawAmt + fee;
+
+    let personalAmt = finalBillAmount;
+    if (isCredit && smartFlags.split) {
+      const inputPersonal = Number(document.getElementById('txPersonalAmount').value);
+      personalAmt = inputPersonal >= 0 ? inputPersonal : finalBillAmount;
+    }
+
+    state.transactions.push({
+      id: 'tx_' + Date.now(),
+      date: dateStr,
+      amount: finalBillAmount,
+      personalAmount: personalAmt,
+      payment: selectedPayment,
+      category: selectedCategory,
+      note: note + (fee > 0 ? ` (含1.5%手續費$${fee})` : ''),
+      foreign: isCredit && smartFlags.foreign,
+      split: isCredit && smartFlags.split,
+      delayToNext: isCredit && smartFlags.delay,
+      isRefund: txMode === 'refund'
+    });
+
+    // 重置輸入欄
+    document.getElementById('txAmount').value = '';
+    document.getElementById('txPersonalAmount').value = '';
+    document.getElementById('txNote').value = '';
+    smartFlags = { foreign: false, split: false, delay: false };
+    ['chipForeign', 'chipSplit', 'chipDelay'].forEach(id => document.getElementById(id).classList.remove('on'));
+    document.getElementById('splitSubPanel').style.display = 'none';
+    updateSmartPreview();
+    saveState();
+  }
+
+  function toggleTxDelay(txId) {
+    const tx = state.transactions.find(t => t.id === txId);
+    if (tx) {
+      tx.delayToNext = !tx.delayToNext;
+      saveState();
+    }
+  }
+
+  function deleteTx(txId) {
+    state.transactions = state.transactions.filter(t => t.id !== txId);
+    saveState();
+  }
+
+  function toggleCardPaid(cardId, ym) {
+    const card = state.cards.find(c => c.id === cardId);
+    if (!card) return;
+    if (!card.paidMonths) card.paidMonths = {};
+    card.paidMonths[ym] = !card.paidMonths[ym];
+    saveState();
+  }
+
+  function toggleBox(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function addInstallment() {
+    const name = document.getElementById('instName').value.trim();
+    const cardId = document.getElementById('instCard').value;
+    const totalAmount = Number(document.getElementById('instTotal').value);
+    const periods = Number(document.getElementById('instPeriods').value);
+    const firstDueMonth = document.getElementById('instStartYM').value;
+    if (!name || !totalAmount || !periods || !firstDueMonth) return alert('請完整填寫分期資料！');
+
+    state.installments.push({ id: 'inst_' + Date.now(), name, cardId, totalAmount, periods, firstDueMonth });
+    document.getElementById('instName').value = '';
+    document.getElementById('instTotal').value = '';
+    document.getElementById('addInstallmentBox').style.display = 'none';
+    saveState();
+  }
+
+  function deleteInstallment(id) {
+    state.installments = state.installments.filter(i => i.id !== id);
+    saveState();
+  }
+
+  function addSubscription() {
+    const name = document.getElementById('subName').value.trim();
+    const cardId = document.getElementById('subCard').value;
+    const amount = Number(document.getElementById('subAmount').value);
+    const billingDay = Number(document.getElementById('subDay').value) || 15;
+    const foreignFee = document.getElementById('subForeign').checked;
+    if (!name || !amount) return alert('請填寫服務名稱與金額！');
+
+    state.subscriptions.push({ id: 'sub_' + Date.now(), name, cardId, amount, billingDay, foreignFee });
+    document.getElementById('subName').value = '';
+    document.getElementById('subAmount').value = '';
+    document.getElementById('addSubBox').style.display = 'none';
+    saveState();
+  }
+
+  function deleteSubscription(id) {
+    state.subscriptions = state.subscriptions.filter(s => s.id !== id);
+    saveState();
+  }
+
+  function saveBudgetSettings() {
+    state.budgetLimit = Number(document.getElementById('setBudgetLimit').value) || 30000;
+    state.budgetStartDay = Math.min(31, Math.max(1, Number(document.getElementById('setBudgetStartDay').value) || 1));
+    saveState();
+    alert('已更新每月預算與起始日！');
+  }
+
+  function addCreditCard() {
+    const name = document.getElementById('newCardName').value.trim();
+    const closingDay = Number(document.getElementById('newCardClosing').value);
+    const dueDay = Number(document.getElementById('newCardDue').value);
+    const manualAdjust = Number(document.getElementById('newCardAdjust').value) || 0;
+    if (!name || !closingDay || !dueDay) return alert('請填寫卡片名稱、結帳日與繳款截止日！');
+
+    state.cards.push({ id: 'card_' + Date.now(), name, closingDay, dueDay, manualAdjust, paidMonths: {} });
+    document.getElementById('newCardName').value = '';
+    document.getElementById('newCardClosing').value = '';
+    document.getElementById('newCardDue').value = '';
+    document.getElementById('newCardAdjust').value = '0';
+    saveState();
+  }
+
+  function deleteCard(id) {
+    if (!confirm('確定要刪除這張信用卡嗎？')) return;
+    state.cards = state.cards.filter(c => c.id !== id);
+    if (selectedPayment === id) selectedPayment = 'cash';
+    saveState();
+  }
+
+  function copyGasCode() {
+    const code = document.getElementById('gasCodeBox').textContent;
+    navigator.clipboard.writeText(code).then(() => alert('已複製 GAS 程式碼！'));
+  }
+
+  async function syncToGoogleSheets(mode) {
+    const url = document.getElementById('gasUrlInput').value.trim();
+    if (!url) return alert('請先貼上 Google Apps Script 部署網址！');
+    state.gasUrl = url;
+    saveState();
+
+    try {
+      if (mode === 'upload') {
+        await fetch(url, {
+          method: 'POST',
+          mode: 'no-cors',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify({ data: state })
+        });
+        alert('⬆️ 已將資料備份至你的 Google 試算表！');
+      } else {
+        const res = await fetch(url);
+        const cloudData = await res.json();
+        if (cloudData && cloudData.cards) {
+          state = cloudData;
+          saveState();
+          alert('⬇️ 已從 Google 試算表成功還原資料！');
+        } else {
+          alert('試算表中尚無有效備份資料。');
+        }
+      }
+    } catch (err) {
+      alert('連線發生錯誤，請確認 GAS 部署權限是否設為「所有人」：' + err.message);
+    }
+  }
+
+  function exportJsonBackup() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `kakeibo_backup_${currentViewYM}.json`;
+    a.click();
+  }
+
+  function resetToCleanOrDemo() {
+    if (confirm('要清空所有模擬消費紀錄（保留分類設定），讓你從零開始輸入自己的卡片嗎？')) {
+      state.transactions = [];
+      state.installments = [];
+      state.subscriptions = [];
+      saveState();
+    }
+  }
+
+  // 初始化預設日期為系統當前基準日 2026-10-27
+  document.getElementById('txDate').value = '2026-10-27';
+  renderAll();
+</script>
+</body>
+</html>
