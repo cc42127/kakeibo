@@ -725,7 +725,7 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <label class="label-sm" style="margin:0;">支出分類</label>
         <div style="display:flex; gap:6px;">
-  <button type="button" class="pill-btn" style="padding:3px 10px; font-size:0.75rem; background:var(--sky-blue); white-space:nowrap;" onclick="addCustomCategory()">＋ 新增分類</button>
+  <button type="button" class="pill-btn" style="padding:3px 10px; font-size:0.75rem; background:var(--sky-blue); white-space:nowrap;" onclick="toggleNewCategoryBox()">＋ 新增分類</button>
   <button type="button" id="delCatModeBtn" class="pill-btn" style="padding:3px 10px; font-size:0.75rem; background:var(--washi-bg); white-space:nowrap;" onclick="toggleDeleteCatMode()">🗑️ 刪除分類</button>
 </div>
       </div>
@@ -1501,7 +1501,7 @@ function getTodayLocalISO() {
   }
 
   function renderRecentTransactions(period) {
-    if (!period) period = getBudgetPeriod(currentViewYM, state.budgetStartDay);
+ if (!period) period = getBudgetPeriodRange(currentViewYM);
     const periodKey = `${period.startFull}_${period.endFull}`;
     const todayStr = getTodayLocalISO();
 
@@ -1999,7 +1999,7 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // 初始化預設日期為系統當前基準日 2026-10-27
-  document.getElementById('txDate').value = '2026-10-27';
+  document.getElementById('txDate').value = 'getTodayLocalISO()';
   renderAll();
 </script>
 </body>
