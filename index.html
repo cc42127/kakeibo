@@ -610,10 +610,10 @@
 
     <!-- 雙軌預算並排看板 -->
     <div class="dual-budget-grid">
-      <!-- 指標 A：依刷卡日（控衝動） -->
+      <!-- 指標 A：依刷卡日 -->
       <div class="budget-box track-a">
         <div class="budget-box-header">
-          <span>🛒 A.依刷卡日(控衝動)</span>
+          <span>🛒 A.依刷卡日</span>
           <!-- 自繪日式口金零錢包 SVG -->
           <svg width="24" height="24" viewBox="0 0 36 36" fill="none">
             <circle cx="15" cy="7" r="3" fill="#FFFCF6" stroke="#3E3A39" stroke-width="2.5"/>
@@ -632,10 +632,10 @@
         </div>
       </div>
 
-      <!-- 指標 B：依繳款日（控現金流） -->
+      <!-- 指標 B：依繳款日 -->
       <div class="budget-box track-b">
         <div class="budget-box-header">
-          <span>🏦 B.依繳款日(控現金)</span>
+          <span>🏦 B.依繳款日</span>
           <!-- 自繪小豬撲滿 SVG -->
           <svg width="24" height="24" viewBox="0 0 36 36" fill="none">
             <ellipse cx="18" cy="20" rx="12" ry="9" fill="#B9DAA5" stroke="#3E3A39" stroke-width="2.8"/>
@@ -724,7 +724,10 @@
       <!-- 分類選擇（含自訂圖示） -->
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <label class="label-sm" style="margin:0;">支出分類</label>
-        <button type="button" class="btn btn-sm btn-aqua" onclick="toggleNewCategoryBox()">➕ 新增自訂分類</button>
+        <div style="display:flex; gap:6px;">
+  <button type="button" class="pill-btn" style="padding:3px 10px; font-size:0.75rem; background:var(--sky-blue); white-space:nowrap;" onclick="addCustomCategory()">＋ 新增分類</button>
+  <button type="button" id="delCatModeBtn" class="pill-btn" style="padding:3px 10px; font-size:0.75rem; background:var(--washi-bg); white-space:nowrap;" onclick="toggleDeleteCatMode()">🗑️ 刪除分類</button>
+</div>
       </div>
 
       <!-- 展開新增自訂分類 -->
@@ -751,11 +754,16 @@
       </div>
     </section>
 
-    <!-- 本月近期明細 -->
+<!-- 本月近期明細 -->
     <section class="storybook-card">
       <div class="section-title">
-        <span>📒 本月消費明細（點擊 ⏭️ 可切換帳單期別）</span>
-        <span id="txCountBadge" style="font-size:0.8rem;">0 筆</span>
+        <span>📒 本月消費明細</span>
+        <span id="txCountBadge" style="font-size:0.8rem; white-space:nowrap;">0 筆</span>
+      </div>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:10px; background:var(--washi-bg); padding:6px 8px; border:var(--border-thick); border-radius:var(--radius-md);">
+        <button type="button" class="pill-btn" style="padding:4px 10px; font-size:0.8rem; white-space:nowrap;" onclick="stepTxDay(-1)">◀ 前一天</button>
+        <span id="txCurrentDayLabel" style="font-weight:bold; font-size:0.9rem;">2026-10-28</span>
+        <button type="button" class="pill-btn" style="padding:4px 10px; font-size:0.8rem; white-space:nowrap;" onclick="stepTxDay(1)">後一天 ▶</button>
       </div>
       <div id="recentTxList"></div>
     </section>
@@ -774,7 +782,7 @@
             <rect x="22" y="20" width="11" height="5" fill="#B9DAA5" stroke="#3E3A39" stroke-width="2"/>
             <circle cx="24" cy="30" r="1.5" fill="#3E3A39"/><circle cx="28" cy="30" r="1.5" fill="#3E3A39"/><circle cx="32" cy="30" r="1.5" fill="#3E3A39"/>
           </svg>
-          <span>各卡結帳週期與應繳總覽</span>
+          <span>結帳週期與總覽</span>
         </div>
         <span style="font-size:0.78rem;background:var(--washi-bg);padding:2px 8px;border:2px solid var(--ink-border);border-radius:99px;" id="cardsViewMonthBadge">2026/10</span>
       </div>
@@ -810,7 +818,7 @@
             <line x1="24" y1="4" x2="24" y2="10" stroke="#3E3A39" stroke-width="3" stroke-linecap="round"/>
             <circle cx="18" cy="22" r="5" fill="#F6D27A" stroke="#3E3A39" stroke-width="2.2"/>
           </svg>
-          <span>信用卡分期付款（首期自動含尾差）</span>
+          <span>信用卡分期付款</span>
         </div>
         <button class="btn btn-sm btn-yamabuki" onclick="toggleBox('addInstallmentBox')">➕ 新增分期</button>
       </div>
@@ -849,7 +857,7 @@
     <!-- 定期加值服務／訂閱模組 -->
     <section class="storybook-card">
       <div class="section-title">
-        <span>📺 每月固定扣款／加值服務（如網飛）</span>
+        <span>📺 每月固定扣款／加值服務</span>
         <button class="btn btn-sm btn-aqua" onclick="toggleBox('addSubBox')">➕ 新增訂閱</button>
       </div>
 
@@ -876,7 +884,7 @@
         </div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <label style="font-size:0.84rem;font-weight:bold;cursor:pointer;">
-            <input type="checkbox" id="subForeign" checked /> 🌐 屬於跨國收單（自動加計 1.5% 海外手續費）
+            <input type="checkbox" id="subForeign" /> 🌐 屬於跨國收單（自動加計 1.5% 海外手續費）
           </label>
         </div>
         <button class="btn btn-bamboo" style="width:100%;" onclick="addSubscription()">💾 儲存定期扣款</button>
@@ -906,7 +914,7 @@
 
     <!-- 新增與管理十幾張信用卡 -->
     <section class="storybook-card">
-      <div class="section-title">💳 新增／管理我的信用卡（支援十幾張卡）</div>
+      <div class="section-title">💳 新增／管理我的信用卡</div>
       <div class="sub-panel" style="background:var(--yamabuki);">
         <div class="form-row">
           <div>
@@ -935,33 +943,44 @@
 
     <!-- 免費串接 Google Sheets 雲端同步 -->
     <section class="storybook-card">
-      <div class="section-title">☁️ 免費串接 Google 試算表（換手機免煩惱）</div>
+      <div class="section-title">☁️ 免費串接 Google 試算表</div>
       <p style="font-size:0.8rem;margin-top:0;">
-        資料預設即時保存在手機中。若要跨裝置同步至你個人的 Google Sheets（永久免費 $0），請輸入部署後的網頁應用程式網址：
+        資料預設即時保存在手機中。若要跨裝置同步至你個人的 Google Sheets，請輸入部署後的網頁應用程式網址：
       </p>
-      <label class="label-sm">Google Apps Script (GAS) 網址</label>
+<label class="label-sm">Google Apps Script (GAS) 網址</label>
       <input type="url" id="gasUrlInput" class="input-field" placeholder="https://script.google.com/macros/s/....../exec" style="margin-bottom:8px;" />
+      <label class="label-sm">同步密碼</label>
+      <input type="password" id="gasTokenInput" class="input-field" placeholder="請輸入剛才設定的專屬密碼" style="margin-bottom:8px;" />
       <div class="form-row">
         <button class="btn btn-aqua" onclick="syncToGoogleSheets('upload')">⬆️ 備份至試算表</button>
         <button class="btn btn-bamboo" onclick="syncToGoogleSheets('download')">⬇️ 從試算表還原</button>
       </div>
 
-      <details style="margin-top:10px;font-size:0.8rem;">
+<details style="margin-top:10px;font-size:0.8rem;">
         <summary style="font-weight:bold;cursor:pointer;">📖 點此展開：3 分鐘免費串接 Google 試算表教學與程式碼</summary>
         <div style="margin-top:8px;">
           <ol style="padding-left:18px;margin:4px 0 8px;">
             <li>在你的 Google 雲端硬碟新增一個空白「Google 試算表」。</li>
-            <li>點選上方選單「擴充功能」➔「Apps Script」，將下方程式碼貼上並儲存。</li>
+            <li>點選上方選單「擴充功能」➔「Apps Script」，將下方程式碼貼上（請修改第 2 行的專屬密碼）並儲存。</li>
             <li>點選右上角「部署」➔「新增部署作業」➔ 類型選「網頁應用程式」➔ 誰可以存取選「所有人」➔ 複製網址貼回上方欄位即可！</li>
           </ol>
-          <div class="code-box" id="gasCodeBox">function doPost(e) {
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+          <div class="code-box" id="gasCodeBox">/** @OnlyCurrentDoc */
+const SECRET_TOKEN = "請改成你的專屬密碼";
+
+function doPost(e) {
   var payload = JSON.parse(e.postData.contents);
+  if (payload.token !== SECRET_TOKEN) {
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: "密碼錯誤"})).setMimeType(ContentService.MimeType.JSON);
+  }
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   sheet.getRange("A1").setValue(JSON.stringify(payload.data));
   sheet.getRange("B1").setValue(new Date().toISOString());
   return ContentService.createTextOutput(JSON.stringify({status: "ok"})).setMimeType(ContentService.MimeType.JSON);
 }
 function doGet(e) {
+  if (!e.parameter || e.parameter.token !== SECRET_TOKEN) {
+    return ContentService.createTextOutput(JSON.stringify({status: "error", message: "密碼錯誤"})).setMimeType(ContentService.MimeType.JSON);
+  }
   var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
   var raw = sheet.getRange("A1").getValue();
   return ContentService.createTextOutput(raw || "{}").setMimeType(ContentService.MimeType.JSON);
@@ -1320,7 +1339,7 @@ function doGet(e) {
     document.getElementById('fixedPreDeductText').textContent =
       `已含分期 $${fixedInstTotal.toLocaleString()} + 訂閱 $${fixedSubTotal.toLocaleString()}`;
 
-    // 指標 A：依刷卡日（控衝動）
+    // 指標 A：依刷卡日
     const usedA = cashTotal + swipeNewPersonalTotal + fixedCombined;
     const remainA = state.budgetLimit - usedA;
     const elRemainA = document.getElementById('trackARemain');
@@ -1331,7 +1350,7 @@ function doGet(e) {
     document.getElementById('trackAFixed').textContent = `$${fixedCombined.toLocaleString()}`;
     renderBattery('trackABattery', usedA, state.budgetLimit);
 
-    // 指標 B：依繳款日（控現金流）
+    // 指標 B：依繳款日
     let dueNowAllCards = 0;
     let dueNextAllCards = 0;
     state.cards.forEach(card => {
@@ -1419,28 +1438,104 @@ function renderPaymentPills() {
   }
 }
 
+let isDeleteCatMode = false;
+
+  function toggleDeleteCatMode() {
+    isDeleteCatMode = !isDeleteCatMode;
+    const btn = document.getElementById('delCatModeBtn');
+    if (btn) {
+      btn.style.background = isDeleteCatMode ? 'var(--coral-pink)' : 'var(--washi-bg)';
+      btn.textContent = isDeleteCatMode ? '✅ 完成' : '🗑️ 刪除分類';
+    }
+    renderCategories();
+  }
+
+  function deleteCategory(idx) {
+    if (state.categories.length <= 1) {
+      alert('至少要保留 1 個支出分類喔！');
+      return;
+    }
+    const cat = state.categories[idx];
+    if (!confirm(`確定要刪除「${cat.name}」分類嗎？`)) return;
+    const deletedFull = `${cat.icon} ${cat.name}`;
+    state.categories.splice(idx, 1);
+    if (selectedCategory === deletedFull) {
+      selectedCategory = `${state.categories[0].icon} ${state.categories[0].name}`;
+    }
+    saveState();
+    renderCategories();
+  }
+
   function renderCategories() {
     const grid = document.getElementById('categoryGrid');
-    grid.innerHTML = state.categories.map(cat => {
+    grid.innerHTML = state.categories.map((cat, idx) => {
       const full = `${cat.icon} ${cat.name}`;
+      if (isDeleteCatMode) {
+        return `<button type="button" class="pill-btn" style="border-color:#c94a4a; background:#fff0ee; position:relative;" onclick="deleteCategory(${idx})"><span style="position:absolute; top:2px; right:5px; font-size:0.65rem; color:#c94a4a; font-weight:bold;">✕</span>${cat.icon}<br><span style="font-size:0.74rem;">${cat.name}</span></button>`;
+      }
       const isAct = selectedCategory === full ? 'active' : '';
       return `<button type="button" class="pill-btn ${isAct}" onclick="selectCategory('${full}')">${cat.icon}<br><span style="font-size:0.74rem;">${cat.name}</span></button>`;
     }).join('');
   }
 
-  function renderRecentTransactions(period) {
-    const list = document.getElementById('recentTxList');
-    const filtered = state.transactions
-      .filter(tx => tx.date >= period.startFull && tx.date <= period.endFull)
-      .sort((a, b) => b.date.localeCompare(a.date));
+function getTodayLocalISO() {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  }
 
-    document.getElementById('txCountBadge').textContent = `${filtered.length} 筆`;
-    if (!filtered.length) {
-      list.innerHTML = `<div style="text-align:center;padding:14px;font-size:0.84rem;color:var(--muted-ink);">這個週期還沒有記帳紀錄喔！</div>`;
+  let currentTxDay = getTodayLocalISO();
+  let lastTxPeriodKey = '';
+
+  function stepTxDay(offset) {
+    const parts = currentTxDay.split('-').map(Number);
+    const d = new Date(parts[0], parts[1] - 1, parts[2]);
+    d.setDate(d.getDate() + offset);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    currentTxDay = `${y}-${m}-${day}`;
+    renderRecentTransactions();
+  }
+
+  function renderRecentTransactions(period) {
+    if (!period) period = getBudgetPeriod(currentViewYM, state.budgetStartDay);
+    const periodKey = `${period.startFull}_${period.endFull}`;
+    const todayStr = getTodayLocalISO();
+
+    // 打開 App 或切換月份時：若「今天」在該預算週期內，強制預設顯示「今天」
+    if (lastTxPeriodKey !== periodKey) {
+      lastTxPeriodKey = periodKey;
+      if (todayStr >= period.startFull && todayStr <= period.endFull) {
+        currentTxDay = todayStr;
+      } else {
+        currentTxDay = period.startFull;
+      }
+    }
+
+    const list = document.getElementById('recentTxList');
+    const monthFiltered = state.transactions
+      .filter(tx => tx.date >= period.startFull && tx.date <= period.endFull);
+
+    const dayFiltered = state.transactions
+      .filter(tx => tx.date === currentTxDay);
+
+    const dayLabel = document.getElementById('txCurrentDayLabel');
+    if (dayLabel) {
+      const isToday = (currentTxDay === todayStr) ? ' (今天)' : '';
+      dayLabel.textContent = `${currentTxDay}${isToday}`;
+    }
+
+    document.getElementById('txCountBadge').textContent = `當日 ${dayFiltered.length} 筆 / 本期 ${monthFiltered.length} 筆`;
+
+    if (!dayFiltered.length) {
+      list.innerHTML = `<div style="text-align:center;padding:14px;font-size:0.84rem;color:var(--muted-ink);">📅 ${currentTxDay} 這天沒有記帳紀錄喔！</div>`;
       return;
     }
 
-    list.innerHTML = filtered.map(tx => {
+    list.innerHTML = dayFiltered.map(tx => {
       const cardObj = state.cards.find(c => c.id === tx.payment);
       const payName = cardObj ? `💳 ${cardObj.name}` : '💵 現金';
       const dueBadge = cardObj
@@ -1472,7 +1567,7 @@ function renderPaymentPills() {
   function renderCreditCardsTab(currYM, nextYM, sumNow, sumNext) {
     const { m } = parseYM(currYM);
     const { m: nm } = parseYM(nextYM);
-    document.getElementById('cardsViewMonthBadge').textContent = `檢視月份：${currYM}`;
+    document.getElementById('cardsViewMonthBadge').textContent = `${currYM}`;
     document.getElementById('ccSumNowLabel').textContent = `${m}月`;
     document.getElementById('ccSumNextLabel').textContent = `${nm}月`;
     document.getElementById('ccTotalDueNow').textContent = `$${sumNow.toLocaleString()}`;
@@ -1739,6 +1834,7 @@ function renderPaymentPills() {
   }
 
   function deleteTx(txId) {
+    if (!confirm('確定要刪除這筆消費明細嗎？')) return;
     state.transactions = state.transactions.filter(t => t.id !== txId);
     saveState();
   }
@@ -1772,6 +1868,7 @@ function renderPaymentPills() {
   }
 
   function deleteInstallment(id) {
+    if (!confirm('確定要刪除這筆分期付款嗎？')) return;
     state.installments = state.installments.filter(i => i.id !== id);
     saveState();
   }
@@ -1792,6 +1889,7 @@ function renderPaymentPills() {
   }
 
   function deleteSubscription(id) {
+    if (!confirm('確定要刪除這筆固定訂閱嗎？')) return;
     state.subscriptions = state.subscriptions.filter(s => s.id !== id);
     saveState();
   }
@@ -1830,26 +1928,48 @@ function renderPaymentPills() {
     navigator.clipboard.writeText(code).then(() => alert('已複製 GAS 程式碼！'));
   }
 
+window.addEventListener('DOMContentLoaded', () => {
+    const savedToken = localStorage.getItem('kakeibo_gas_token') || (state && state.gasToken) || '';
+    const tokenEl = document.getElementById('gasTokenInput');
+    if (tokenEl && savedToken) tokenEl.value = savedToken;
+  });
+
   async function syncToGoogleSheets(mode) {
     const url = document.getElementById('gasUrlInput').value.trim();
+    const tokenEl = document.getElementById('gasTokenInput');
+    const token = tokenEl ? tokenEl.value.trim() : '';
     if (!url) return alert('請先貼上 Google Apps Script 部署網址！');
+    if (!token) return alert('請輸入同步密碼！');
+
     state.gasUrl = url;
+    state.gasToken = token;
+    localStorage.setItem('kakeibo_gas_token', token);
     saveState();
 
     try {
       if (mode === 'upload') {
-        await fetch(url, {
+        const res = await fetch(url, {
           method: 'POST',
-          mode: 'no-cors',
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify({ data: state })
+          body: JSON.stringify({ token: token, data: state })
         });
-        alert('⬆️ 已將資料備份至你的 Google 試算表！');
+        const result = await res.json();
+        if (result.status === 'ok') {
+          alert('⬆️ 已將資料備份至你的 Google 試算表！');
+        } else {
+          alert('❌ 備份失敗：' + (result.message || '密碼錯誤'));
+        }
       } else {
-        const res = await fetch(url);
+        if (!confirm('從試算表還原將會覆蓋目前的畫面資料，確定要還原嗎？')) return;
+        const res = await fetch(`${url}?token=${encodeURIComponent(token)}`);
         const cloudData = await res.json();
+        if (cloudData.status === 'error') {
+          return alert('❌ 還原失敗：' + cloudData.message);
+        }
         if (cloudData && cloudData.cards) {
           state = cloudData;
+          state.gasUrl = url;
+          state.gasToken = token;
           saveState();
           alert('⬇️ 已從 Google 試算表成功還原資料！');
         } else {
@@ -1857,7 +1977,7 @@ function renderPaymentPills() {
         }
       }
     } catch (err) {
-      alert('連線發生錯誤，請確認 GAS 部署權限是否設為「所有人」：' + err.message);
+      alert('連線發生錯誤，請確認網址與密碼是否正確，且 GAS 部署權限設為「所有人」：' + err.message);
     }
   }
 
