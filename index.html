@@ -726,7 +726,7 @@
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <label class="label-sm" style="margin:0;">支出分類</label>
         <div style="display:flex; gap:6px;">
-  <button type="button" class="pill-btn" style="padding:3px 10px; font-size:0.75rem; background:var(--sky-blue); white-space:nowrap;" onclick="toggleNewCategoryBox()">＋ 新增分類</button>
+  <button type="button" class="pill-btn" style="padding:3px 10px; font-size:0.75rem; background:var(--aqua); white-space:nowrap;" onclick="toggleNewCategoryBox()">＋ 新增分類</button>
   <button type="button" id="delCatModeBtn" class="pill-btn" style="padding:3px 10px; font-size:0.75rem; background:var(--washi-bg); white-space:nowrap;" onclick="toggleDeleteCatMode()">🗑️ 刪除分類</button>
 </div>
       </div>
@@ -1023,7 +1023,7 @@ function doGet(e) {
 <script>
   // ==================== 系統基準日與預設資料（基準：2026-10-27） ====================
   const STORAGE_KEY = 'storybook_kakeibo_v1';
-  let currentViewYM = '2026-10'; // 當前檢視年月
+  let currentViewYM = getTodayLocalISO().slice(0, 7); // 當前檢視年月
   let txMode = 'expense';        // 'expense' | 'refund'
   let selectedPayment = 'cash';  // 'cash' | card.id
   let selectedCategory = '🍽️ 餐飲';
@@ -1486,7 +1486,7 @@ let isDeleteCatMode = false;
     isDeleteCatMode = !isDeleteCatMode;
     const btn = document.getElementById('delCatModeBtn');
     if (btn) {
-      btn.style.background = isDeleteCatMode ? 'var(--coral-pink)' : 'var(--washi-bg)';
+     btn.style.background = isDeleteCatMode ? 'var(--coral)' : 'var(--washi-bg)';
       btn.textContent = isDeleteCatMode ? '✅ 完成' : '🗑️ 刪除分類';
     }
     renderCategories();
@@ -1615,7 +1615,7 @@ function getTodayLocalISO() {
     document.getElementById('ccTotalDueNow').textContent = `$${sumNow.toLocaleString()}`;
     document.getElementById('ccTotalDueNext').textContent = `$${sumNext.toLocaleString()}`;
 
-    const todayStr = '2026-10-27'; // 系統基準日
+    const todayStr = getTodayLocalISO(); // 系統基準日
     let unpaidCount = 0;
 
     // 智慧排序：未繳清且距離繳款日 5 天內置頂
