@@ -614,7 +614,7 @@
       <!-- 指標 A：依刷卡日 -->
       <div class="budget-box track-a">
         <div class="budget-box-header">
-          <span>🛒 A.依刷卡日</span>
+          <span>💳 本月消費總覽</span>
           <!-- 自繪日式口金零錢包 SVG -->
           <svg width="24" height="24" viewBox="0 0 36 36" fill="none">
             <circle cx="15" cy="7" r="3" fill="#FFFCF6" stroke="#3E3A39" stroke-width="2.5"/>
@@ -623,12 +623,12 @@
             <path d="M9 14 L27 14" stroke="#3E3A39" stroke-width="2.8"/>
           </svg>
         </div>
-        <span class="budget-remain-label">本月還可買：</span>
+        <span class="budget-remain-label">🔥 目前已刷總計：</span>
         <span class="budget-remain-num" id="trackARemain">$0</span>
         <div class="battery-bar" id="trackABattery"></div>
         <div class="budget-detail-list">
           <div class="budget-detail-row"><span>💵 本月現金:</span><strong id="trackACash">$0</strong></div>
-          <div class="budget-detail-row"><span>💳 本月新刷:</span><strong id="trackASwipe">$0</strong></div>
+          <div class="budget-detail-row"><span>💳 本月刷卡:</span><strong id="trackASwipe">$0</strong></div>
           <div class="budget-detail-row"><span>🔄 分期+訂閱:</span><strong id="trackAFixed">$0</strong></div>
         </div>
       </div>
@@ -636,7 +636,7 @@
       <!-- 指標 B：依繳款日 -->
       <div class="budget-box track-b">
         <div class="budget-box-header">
-          <span>🏦 B.依繳款日</span>
+          <span>💰 本月預算與次月預估</span>
           <!-- 自繪小豬撲滿 SVG -->
           <svg width="24" height="24" viewBox="0 0 36 36" fill="none">
             <ellipse cx="18" cy="20" rx="12" ry="9" fill="#B9DAA5" stroke="#3E3A39" stroke-width="2.8"/>
@@ -648,14 +648,14 @@
             <line x1="23" y1="28" x2="23" y2="32" stroke="#3E3A39" stroke-width="2.8"/>
           </svg>
         </div>
-        <span class="budget-remain-label">繳卡費後剩餘現金：</span>
+        <span class="budget-remain-label">本月還可買：</span>
         <span class="budget-remain-num" id="trackBRemain">$0</span>
         <div class="battery-bar" id="trackBBattery"></div>
         <div class="budget-detail-list">
-          <div class="budget-detail-row"><span>💵 本月現金:</span><strong id="trackBCash">$0</strong></div>
-          <div class="budget-detail-row"><span>🧾 本月應繳卡費:</span><strong id="trackBDueNow">$0</strong></div>
+          <div class="budget-detail-row"><span>⏭️ 次月刷卡:</span><strong id="trackBCash">$0</strong></div>
+          <div class="budget-detail-row"><span>🔄 次月分期+訂閱:</span><strong id="trackBDueNow">$0</strong></div>
           <div class="budget-detail-row" style="color:#3E3A39;border-top:1.5px dashed #3E3A39;margin-top:2px;padding-top:2px;">
-            <span>🔮 下月預估繳:</span><strong id="trackBDueNext">$0</strong>
+            <span>🔮 次月總計:</span><strong id="trackBDueNext">$0</strong>
           </div>
         </div>
       </div>
@@ -1284,14 +1284,24 @@ function doGet(e) {
     return { total, items };
   }
 
-  // ==================== 畫面渲染邏輯 ====================
-  function renderBattery(elId, usedAmount, limitAmount) {
+// ==================== 畫面渲染邏輯 ====================
+  // mode: 'remain' = 剩餘越多綠格越多（右邊用）；'used' = 刷越多亮越多格（左邊用）
+  function renderBattery(elId, usedAmount, limitAmount, mode = 'remain') {
     const container = document.getElementById(elId);
-    const ratio = limitAmount > 0 ? Math.max(0, Math.min(1, (limitAmount - usedAmount) / limitAmount)) : 0;
-    const filledCells = Math.round(ratio * 10);
+    let filledCells = 0;
     let colorClass = 'filled-safe';
-    if (filledCells <= 2) colorClass = 'filled-danger';
-    else if (filledCells <= 5) colorClass = 'filled-warn';
+
+    if (mode === 'used') {
+      const ratio = limitAmount > 0 ? Math.max(0, Math.min(1, usedAmount / limitAmount)) : 0;
+      filledCells = usedAmount > 0 ? Math.max(1, Math.round(ratio * 10)) : 0;
+      if (filledCells >= 8) colorClass = 'filled-danger';
+      else if (filledCells >= 5) colorClass = 'filled-warn';
+    } else {
+      const ratio = limitAmount > 0 ? Math.max(0, Math.min(1, (limitAmount - usedAmount) / limitAmount)) : 0;
+      filledCells = Math.round(ratio * 10);
+      if (filledCells <= 2) colorClass = 'filled-danger';
+      else if (filledCells <= 5) colorClass = 'filled-warn';
+    }
 
     let html = '';
     for (let i = 0; i < 10; i++) {
@@ -1302,28 +1312,50 @@ function doGet(e) {
 
   function renderAll() {
     const { y, m } = parseYM(currentViewYM);
+    const prevYMObj = addMonths(y, m, -1);
+    const prevYM = formatYM(prevYMObj.y, prevYMObj.m);
     const nextYMObj = addMonths(y, m, 1);
     const nextYM = formatYM(nextYMObj.y, nextYMObj.m);
 
     document.getElementById('currentMonthLabel').textContent = `${y}/${String(m).padStart(2,'0')}`;
+    const prevPeriod = getBudgetPeriodRange(prevYM);
     const period = getBudgetPeriodRange(currentViewYM);
+    const nextPeriod = getBudgetPeriodRange(nextYM);
 
     document.getElementById('topBudgetLimit').textContent = state.budgetLimit.toLocaleString();
 
-    // 1. 計算本週期現金支出與本週期新刷卡（個人實付額）
+    // 1. 計算本月現金、本月刷卡（含上月按⏭️延過來的）、次月刷卡（本月按⏭️延去下月的）
     let cashTotal = 0;
-    let swipeNewPersonalTotal = 0;
+    let swipeThisMonth = 0;
+    let swipeNextMonth = 0;
 
     state.transactions.forEach(tx => {
+      const sign = tx.isRefund ? -1 : 1;
+      const pAmt = (tx.personalAmount ?? tx.amount) * sign;
+
       if (tx.date >= period.startFull && tx.date <= period.endFull) {
-        const sign = tx.isRefund ? -1 : 1;
-        const pAmt = (tx.personalAmount ?? tx.amount) * sign;
-        if (tx.payment === 'cash') cashTotal += pAmt;
-        else swipeNewPersonalTotal += pAmt;
+        if (tx.payment === 'cash') {
+          cashTotal += pAmt;
+        } else if (tx.delayToNext) {
+          // 本月點了「⏭️」延至次月：不計入本月刷卡，直接移入「次月刷卡」
+          swipeNextMonth += pAmt;
+        } else {
+          swipeThisMonth += pAmt;
+        }
+      } else if (tx.date >= prevPeriod.startFull && tx.date <= prevPeriod.endFull) {
+        // 上個月點了「⏭️」延過來的刷卡，歸入本月刷卡
+        if (tx.payment !== 'cash' && tx.delayToNext) {
+          swipeThisMonth += pAmt;
+        }
+      } else if (tx.date >= nextPeriod.startFull && tx.date <= nextPeriod.endFull) {
+        // 已預先記錄在下個月日期且未再延期的刷卡
+        if (tx.payment !== 'cash' && !tx.delayToNext) {
+          swipeNextMonth += pAmt;
+        }
       }
     });
 
-    // 本月分期單期總和 ＋ 本月固定訂閱總和
+    // 2. 本月分期 ＋ 本月固定訂閱
     let fixedInstTotal = 0;
     state.installments.forEach(inst => {
       const res = getInstallmentAmountForYM(inst, currentViewYM);
@@ -1340,34 +1372,43 @@ function doGet(e) {
     document.getElementById('fixedPreDeductText').textContent =
       `已含分期 $${fixedInstTotal.toLocaleString()} + 訂閱 $${fixedSubTotal.toLocaleString()}`;
 
-    // 指標 A：依刷卡日
-    const usedA = cashTotal + swipeNewPersonalTotal + fixedCombined;
-    const remainA = state.budgetLimit - usedA;
-    const elRemainA = document.getElementById('trackARemain');
-    elRemainA.textContent = `$${remainA.toLocaleString()}`;
-    elRemainA.className = 'budget-remain-num' + (remainA < 0 ? ' danger' : '');
-    document.getElementById('trackACash').textContent = `$${cashTotal.toLocaleString()}`;
-    document.getElementById('trackASwipe').textContent = `$${swipeNewPersonalTotal.toLocaleString()}`;
-    document.getElementById('trackAFixed').textContent = `$${fixedCombined.toLocaleString()}`;
-    renderBattery('trackABattery', usedA, state.budgetLimit);
+    // 3. 次月分期（若本月是最後一期，次月會自動歸零）＋ 次月固定訂閱
+    let nextInstTotal = 0;
+    state.installments.forEach(inst => {
+      const res = getInstallmentAmountForYM(inst, nextYM);
+      if (res.active) nextInstTotal += res.amount;
+    });
+    const nextFixedCombined = nextInstTotal + fixedSubTotal;
+    const nextMonthTotal = swipeNextMonth + nextFixedCombined;
 
-    // 指標 B：依繳款日
+    // 左側黃框：本月消費總覽（大字顯示：目前已刷總計 = 本月刷卡 + 分期訂閱）
+    const alreadySwipedTotal = swipeThisMonth + fixedCombined;
+    const elRemainA = document.getElementById('trackARemain');
+    elRemainA.textContent = `$${alreadySwipedTotal.toLocaleString()}`;
+    elRemainA.className = 'budget-remain-num' + (alreadySwipedTotal > state.budgetLimit ? ' danger' : '');
+    document.getElementById('trackACash').textContent = `$${cashTotal.toLocaleString()}`;
+    document.getElementById('trackASwipe').textContent = `$${swipeThisMonth.toLocaleString()}`;
+    document.getElementById('trackAFixed').textContent = `$${fixedCombined.toLocaleString()}`;
+    renderBattery('trackABattery', alreadySwipedTotal, state.budgetLimit, 'used');
+
+    // 右側藍框：預算與次月預估（大字顯示：本月還可買 = 總預算 - 現金 - 本月刷卡 - 分期訂閱）
+    const totalUsedThisMonth = cashTotal + alreadySwipedTotal;
+    const remainBudget = state.budgetLimit - totalUsedThisMonth;
+    const elRemainB = document.getElementById('trackBRemain');
+    elRemainB.textContent = `$${remainBudget.toLocaleString()}`;
+    elRemainB.className = 'budget-remain-num' + (remainBudget < 0 ? ' danger' : '');
+    document.getElementById('trackBCash').textContent = `$${swipeNextMonth.toLocaleString()}`;
+    document.getElementById('trackBDueNow').textContent = `$${nextFixedCombined.toLocaleString()}`;
+    document.getElementById('trackBDueNext').textContent = `$${nextMonthTotal.toLocaleString()}`;
+    renderBattery('trackBBattery', totalUsedThisMonth, state.budgetLimit, 'remain');
+
+    // 計算分頁 2（卡片週期）所需的各卡應繳總額
     let dueNowAllCards = 0;
     let dueNextAllCards = 0;
     state.cards.forEach(card => {
       dueNowAllCards += getCardBillForDueYM(card, currentViewYM).total;
       dueNextAllCards += getCardBillForDueYM(card, nextYM).total;
     });
-
-    const usedB = cashTotal + dueNowAllCards;
-    const remainB = state.budgetLimit - usedB;
-    const elRemainB = document.getElementById('trackBRemain');
-    elRemainB.textContent = `$${remainB.toLocaleString()}`;
-    elRemainB.className = 'budget-remain-num' + (remainB < 0 ? ' danger' : '');
-    document.getElementById('trackBCash').textContent = `$${cashTotal.toLocaleString()}`;
-    document.getElementById('trackBDueNow').textContent = `$${dueNowAllCards.toLocaleString()}`;
-    document.getElementById('trackBDueNext').textContent = `$${dueNextAllCards.toLocaleString()}`;
-    renderBattery('trackBBattery', usedB, state.budgetLimit);
 
     renderPaymentPills();
     renderCategories();
