@@ -1149,12 +1149,34 @@ function doGet(e) {
   /**
    * 給定目標「繳款年月 (dueYM)」與卡片，反推該期帳單的「結帳區間 (起日 ~ 迄日)」與「繳款截止日」
    */
-  function getCycleRangeForDueYM(dueYM, card) {
-    const { y: dy, m: dm } = parseYM(dueYM);
-    let closeY = dy, closeM = dm;
-    if (card.dueDay <= card.closingDay) {
-      const prev = addMonths(dy, dm, -1);
-      closeY = prev.y; closeM = prev.m;
+// 依卡片「結帳日」計算該筆消費歸屬哪一個「帳單週期月份 (YYYY-MM)」
+  // 規則：5~31號結帳卡歸屬結帳當月（如 9/30~10/29 歸 10月）；1~4號結帳卡歸屬結帳前月（如 10/3~11/2 歸 10月）
+  function getStatementYMForTransaction(txDateStr, card, delayToNext = false) {
+    const [ty, tm, td] = txDateStr.split('-').map(Number);
+    const effClosing = clampDay(ty, tm, card.closingDay);
+    let closeY = ty, closeM = tm;
+    if (td > effClosing) {
+      const next = addMonths(ty, tm, 1);
+      closeY = next.y; closeM = next.m;
+    }
+    if (delayToNext) {
+      const next = addMonths(closeY, closeM, 1);
+      closeY = next.y; closeM = next.m;
+    }
+    if (card.closingDay <= 4) {
+      const belong = addMonths(closeY, closeM, -1);
+      return formatYM(belong.y, belong.m);
+    }
+    return formatYM(closeY, closeM);
+  }
+
+  // 給定「帳單週期月份 (cycleYM)」與卡片，算出該期的「結帳區間 (起日~迄日)」與「實際繳款截止日」
+  function getCycleRangeForDueYM(cycleYM, card) {
+    const { y: cy, m: cm } = parseYM(cycleYM);
+    let closeY = cy, closeM = cm;
+    if (card.closingDay <= 4) {
+      const next = addMonths(cy, cm, 1);
+      closeY = next.y; closeM = next.m;
     }
     const endDay = clampDay(closeY, closeM, card.closingDay);
     const prevClose = addMonths(closeY, closeM, -1);
@@ -1164,15 +1186,21 @@ function doGet(e) {
     const sm = startDateObj.getMonth() + 1;
     const sd = startDateObj.getDate();
 
+    let dueY = closeY, dueM = closeM;
+    if (card.dueDay <= card.closingDay) {
+      const nextDue = addMonths(closeY, closeM, 1);
+      dueY = nextDue.y; dueM = nextDue.m;
+    }
+
     return {
       startStr: `${String(sm).padStart(2,'0')}/${String(sd).padStart(2,'0')}`,
       endStr: `${String(closeM).padStart(2,'0')}/${String(endDay).padStart(2,'0')}`,
-      dueDateFull: formatFullDate(dy, dm, card.dueDay),
-      dueStr: `${String(dm).padStart(2,'0')}/${String(clampDay(dy, dm, card.dueDay)).padStart(2,'0')}`
+      dueDateFull: formatFullDate(dueY, dueM, card.dueDay),
+      dueStr: `${String(dueM).padStart(2,'0')}/${String(clampDay(dueY, dueM, card.dueDay)).padStart(2,'0')}`
     };
   }
 
-  // 計算特定分期在目標繳款年月 (dueYM) 的單期應繳金額（首期自動含尾差）
+  // 計算特定分期在目標年月 (targetYM) 的單期應繳金額（首期自動含尾差）
   function getInstallmentAmountForYM(inst, targetYM) {
     const diff = monthDiff(inst.firstDueMonth, targetYM);
     const periodNo = diff + 1;
@@ -1203,16 +1231,16 @@ function doGet(e) {
     return { startFull, endFull };
   }
 
-  // 計算單張信用卡在指定「繳款年月 (dueYM)」的帳單總額與明細
-  function getCardBillForDueYM(card, dueYM) {
+  // 計算單張信用卡在指定「帳單週期月份 (cycleYM)」的帳單總額與明細（與首頁 100% 同步）
+  function getCardBillForDueYM(card, cycleYM) {
     let total = 0;
     const items = [];
 
-    // 1. 一般刷卡與刷退
+    // 1. 一般刷卡與刷退（依結帳週期歸屬判斷）
     state.transactions.forEach(tx => {
       if (tx.payment !== card.id) return;
-      const txDueYM = getDueYMForTransaction(tx.date, card, tx.delayToNext);
-      if (txDueYM === dueYM) {
+      const stmtYM = getStatementYMForTransaction(tx.date, card, tx.delayToNext);
+      if (stmtYM === cycleYM) {
         const sign = tx.isRefund ? -1 : 1;
         const amt = tx.amount * sign;
         total += amt;
@@ -1232,7 +1260,7 @@ function doGet(e) {
 
     // 2. 分期付款
     state.installments.filter(i => i.cardId === card.id).forEach(inst => {
-      const res = getInstallmentAmountForYM(inst, dueYM);
+      const res = getInstallmentAmountForYM(inst, cycleYM);
       if (res.active) {
         total += res.amount;
         items.push({
@@ -1245,30 +1273,22 @@ function doGet(e) {
       }
     });
 
-    // 3. 定期訂閱（依每月扣款日判斷歸屬哪期帳單）
-    const { y, m } = parseYM(dueYM);
-    // 檢查前一個月、當月、後一個月的訂閱扣款日哪一筆落在 dueYM 繳款
-    [-1, 0, 1].forEach(offset => {
-      const subM = addMonths(y, m, offset);
-      state.subscriptions.filter(s => s.cardId === card.id).forEach(sub => {
-        const subDateFull = formatFullDate(subM.y, subM.m, sub.billingDay);
-        if (getDueYMForTransaction(subDateFull, card, false) === dueYM) {
-          const fee = sub.foreignFee ? Math.round(sub.amount * 0.015) : 0;
-          const finalAmt = sub.amount + fee;
-          total += finalAmt;
-          items.push({
-            type: 'sub',
-            date: subDateFull.slice(5),
-            title: `📺 ${sub.name}${sub.foreignFee ? ' (含1.5%海外)' : ''}`,
-            amount: finalAmt,
-            personalAmount: finalAmt
-          });
-        }
+    // 3. 定期訂閱（每期固定計入一次，與首頁完全一致）
+    state.subscriptions.filter(s => s.cardId === card.id).forEach(sub => {
+      const fee = sub.foreignFee ? Math.round(sub.amount * 0.015) : 0;
+      const finalAmt = sub.amount + fee;
+      total += finalAmt;
+      items.push({
+        type: 'sub',
+        date: `每月${sub.billingDay}日`,
+        title: `📺 ${sub.name}${sub.foreignFee ? ' (含1.5%海外)' : ''}`,
+        amount: finalAmt,
+        personalAmount: finalAmt
       });
     });
 
-    // 4. 首月啟用微調額（僅套用於 2026-10 方便接軌）
-    if (dueYM === '2026-10' && card.manualAdjust) {
+    // 4. 首月啟用微調額
+    if (cycleYM === '2026-10' && card.manualAdjust) {
       total += Number(card.manualAdjust);
       items.push({
         type: 'adjust',
@@ -1282,8 +1302,7 @@ function doGet(e) {
     return { total, items };
   }
 
-// ==================== 畫面渲染邏輯 ====================
-  // mode: 'remain' = 剩餘越多綠格越多（右邊用）；'used' = 刷越多亮越多格（左邊用）
+  // ==================== 畫面渲染邏輯 ====================
   function renderBattery(elId, usedAmount, limitAmount, mode = 'remain') {
     const container = document.getElementById(elId);
     let filledCells = 0;
@@ -1308,15 +1327,104 @@ function doGet(e) {
     container.innerHTML = html;
   }
 
-function renderAll() {
+  function renderAll() {
     const { y, m } = parseYM(currentViewYM);
-    const prevYMObj = addMonths(y, m, -1);
-    ...（中間省略）...
+    const nextYMObj = addMonths(y, m, 1);
+    const nextYM = formatYM(nextYMObj.y, nextYMObj.m);
+
+    document.getElementById('currentMonthLabel').textContent = `${y}/${String(m).padStart(2,'0')}`;
+    const period = getBudgetPeriodRange(currentViewYM);
+
+    document.getElementById('topBudgetLimit').textContent = state.budgetLimit.toLocaleString();
+
+    // 1. 計算本月現金（依當月日期）、本月刷卡（當月結帳週期）、次月刷卡（次月結帳週期）
+    let cashTotal = 0;
+    let swipeThisMonth = 0;
+    let swipeNextMonth = 0;
+
+    state.transactions.forEach(tx => {
+      const sign = tx.isRefund ? -1 : 1;
+      const pAmt = (tx.personalAmount ?? tx.amount) * sign;
+
+      if (tx.payment === 'cash') {
+        if (tx.date >= period.startFull && tx.date <= period.endFull) {
+          cashTotal += pAmt;
+        }
+      } else {
+        const cardObj = state.cards.find(c => c.id === tx.payment);
+        if (cardObj) {
+          const stmtYM = getStatementYMForTransaction(tx.date, cardObj, tx.delayToNext);
+          if (stmtYM === currentViewYM) {
+            swipeThisMonth += pAmt;
+          } else if (stmtYM === nextYM) {
+            swipeNextMonth += pAmt;
+          }
+        }
+      }
+    });
+
+    // 2. 本月分期 ＋ 本月固定訂閱
+    let fixedInstTotal = 0;
+    state.installments.forEach(inst => {
+      const res = getInstallmentAmountForYM(inst, currentViewYM);
+      if (res.active) fixedInstTotal += res.amount;
+    });
+
+    let fixedSubTotal = 0;
+    state.subscriptions.forEach(sub => {
+      const fee = sub.foreignFee ? Math.round(sub.amount * 0.015) : 0;
+      fixedSubTotal += (sub.amount + fee);
+    });
+
+    const fixedCombined = fixedInstTotal + fixedSubTotal;
+    document.getElementById('fixedPreDeductText').textContent =
+      `已含分期 $${fixedInstTotal.toLocaleString()} + 訂閱 $${fixedSubTotal.toLocaleString()}`;
+
+    // 3. 次月分期 ＋ 次月固定訂閱
+    let nextInstTotal = 0;
+    state.installments.forEach(inst => {
+      const res = getInstallmentAmountForYM(inst, nextYM);
+      if (res.active) nextInstTotal += res.amount;
+    });
+    const nextFixedCombined = nextInstTotal + fixedSubTotal;
+    const nextMonthTotal = swipeNextMonth + nextFixedCombined;
+
+    // 左側黃框：本月消費總覽（目前已刷總計 = 本月刷卡 + 分期訂閱）
+    const alreadySwipedTotal = swipeThisMonth + fixedCombined;
+    const elRemainA = document.getElementById('trackARemain');
+    elRemainA.textContent = `$${alreadySwipedTotal.toLocaleString()}`;
+    elRemainA.className = 'budget-remain-num' + (alreadySwipedTotal > state.budgetLimit ? ' danger' : '');
+    document.getElementById('trackACash').textContent = `$${cashTotal.toLocaleString()}`;
+    document.getElementById('trackASwipe').textContent = `$${swipeThisMonth.toLocaleString()}`;
+    document.getElementById('trackAFixed').textContent = `$${fixedCombined.toLocaleString()}`;
+    renderBattery('trackABattery', alreadySwipedTotal, state.budgetLimit, 'used');
+
+    // 右側藍框：預算與預估（剩餘預算 = 總預算 - 現金 - 目前已刷總計）
+    const totalUsedThisMonth = cashTotal + alreadySwipedTotal;
+    const remainBudget = state.budgetLimit - totalUsedThisMonth;
+    const elRemainB = document.getElementById('trackBRemain');
+    elRemainB.textContent = `$${remainBudget.toLocaleString()}`;
+    elRemainB.className = 'budget-remain-num' + (remainBudget < 0 ? ' danger' : '');
+    document.getElementById('trackBCash').textContent = `$${swipeNextMonth.toLocaleString()}`;
+    document.getElementById('trackBDueNow').textContent = `$${nextFixedCombined.toLocaleString()}`;
+    document.getElementById('trackBDueNext').textContent = `$${nextMonthTotal.toLocaleString()}`;
+    renderBattery('trackBBattery', totalUsedThisMonth, state.budgetLimit, 'remain');
+
+    // 計算分頁 2（卡片週期）所需的各卡總額（與首頁 currentViewYM / nextYM 完全對齊）
+    let dueNowAllCards = 0;
+    let dueNextAllCards = 0;
+    state.cards.forEach(card => {
+      dueNowAllCards += getCardBillForDueYM(card, currentViewYM).total;
+      dueNextAllCards += getCardBillForDueYM(card, nextYM).total;
+    });
+
+    renderPaymentPills();
+    renderCategories();
+    renderRecentTransactions(period);
     renderCreditCardsTab(currentViewYM, nextYM, dueNowAllCards, dueNextAllCards);
     renderRecurringTab(currentViewYM);
     renderSettingsTab();
   }
-
 function setPayMethodType(type) {
   const cashBtn = document.getElementById('payCashBtn');
   const cardBtn = document.getElementById('payCardBtn');
