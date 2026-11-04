@@ -1254,7 +1254,7 @@ function doGet(e) {
   }
 
   // 計算單張信用卡在指定「帳單週期月份 (cycleYM)」的帳單總額與明細（與首頁 100% 同步）
-  function getCardBillForDueYM(card, cycleYM) {
+function getCardBillForDueYM(card, cycleYM) {
     let total = 0;
     const items = [];
 
@@ -1265,14 +1265,17 @@ function doGet(e) {
       if (stmtYM === cycleYM) {
         const sign = tx.isRefund ? -1 : 1;
         const amt = tx.amount * sign;
+        const pVal = tx.personalAmount ?? tx.amount;
+        const advVal = tx.amount - pVal;
+        const splitNote = tx.split ? ` (自付$${pVal.toLocaleString()}・代墊$${advVal.toLocaleString()})` : '';
         total += amt;
         items.push({
           type: 'tx',
           id: tx.id,
           date: tx.date.slice(5),
-          title: `${tx.category} ${tx.note || ''}`.trim(),
+          title: `${tx.category} ${tx.note || ''}`.trim() + splitNote,
           amount: amt,
-          personalAmount: (tx.personalAmount ?? tx.amount) * sign,
+          personalAmount: pVal * sign,
           split: tx.split,
           foreign: tx.foreign,
           delayToNext: tx.delayToNext
@@ -1593,7 +1596,7 @@ function toggleTxSearchBox() {
     renderRecentTransactions();
   }
 
-  function renderRecentTransactions(period) {
+function renderRecentTransactions(period) {
     if (!period) period = getBudgetPeriodRange(currentViewYM);
     const periodKey = `${period.startFull}_${period.endFull}`;
     const todayStr = getTodayLocalISO();
@@ -1623,7 +1626,7 @@ function toggleTxSearchBox() {
         if (searchDate && tx.date !== searchDate) return false;
         if (keyword) {
           const cardObj = state.cards.find(c => c.id === tx.payment);
-          const payName = cardObj ? cardObj.name : '現金';
+          const payName = cardObj ? cardObj.name : (tx.payment === 'cash' ? '現金' : (tx.cardName || '已刪卡片'));
           const haystack = `${tx.category} ${tx.note || ''} ${tx.amount} ${payName} ${tx.date}`.toLowerCase();
           if (!haystack.includes(keyword)) return false;
         }
@@ -1638,10 +1641,7 @@ function toggleTxSearchBox() {
       }
     } else {
       if (stepper) stepper.style.display = 'flex';
-      const monthFiltered = state.transactions
-        .filter(tx => tx.date >= period.startFull && tx.date <= period.endFull);
-      displayList = state.transactions
-        .filter(tx => tx.date === currentTxDay);
+      displayList = state.transactions.filter(tx => tx.date === currentTxDay);
 
       const dayLabel = document.getElementById('txCurrentDayLabel');
       if (dayLabel) {
@@ -1649,7 +1649,7 @@ function toggleTxSearchBox() {
         dayLabel.textContent = `${currentTxDay}${isToday}`;
       }
 
-      document.getElementById('txCountBadge').textContent = `當日 ${displayList.length} 筆 / 本期 ${monthFiltered.length} 筆`;
+      document.getElementById('txCountBadge').textContent = `當日 ${displayList.length} 筆`;
 
       if (!displayList.length) {
         list.innerHTML = `<div style="text-align:center;padding:14px;font-size:0.84rem;color:var(--muted-ink);">📅 ${currentTxDay} 這天沒有記帳紀錄喔！</div>`;
@@ -1659,7 +1659,8 @@ function toggleTxSearchBox() {
 
     list.innerHTML = displayList.map(tx => {
       const cardObj = state.cards.find(c => c.id === tx.payment);
-      const payName = cardObj ? `💳 ${cardObj.name}` : '💵 現金';
+      const isCardTx = tx.payment !== 'cash';
+      const payName = cardObj ? `💳 ${cardObj.name}` : (isCardTx ? `💳 ${tx.cardName || '已刪卡片'}` : '💵 現金');
       const dueBadge = cardObj
         ? `<span class="tx-badge">${getDueYMForTransaction(tx.date, cardObj, tx.delayToNext).slice(5)}月繳</span>`
         : '';
@@ -1686,16 +1687,14 @@ function toggleTxSearchBox() {
   }
 
   // 分頁 2：十幾張信用卡動態排序與結帳週期明細
-  function renderCreditCardsTab(currYM, nextYM, sumNow, sumNext) {
-    const { m } = parseYM(currYM);
-    const { m: nm } = parseYM(nextYM);
+function renderCreditCardsTab(currYM, nextYM, sumNow, sumNext) {
     document.getElementById('cardsViewMonthBadge').textContent = `${currYM}`;
-    document.getElementById('ccSumNowLabel').textContent = `${m}月`;
-    document.getElementById('ccSumNextLabel').textContent = `${nm}月`;
+    document.getElementById('ccSumNowLabel').textContent = '本期';
+    document.getElementById('ccSumNextLabel').textContent = '次期';
     document.getElementById('ccTotalDueNow').textContent = `$${sumNow.toLocaleString()}`;
     document.getElementById('ccTotalDueNext').textContent = `$${sumNext.toLocaleString()}`;
 
-    const todayStr = getTodayLocalISO(); // 系統基準日
+    const todayStr = getTodayLocalISO();
     let unpaidCount = 0;
 
     // 智慧排序：未繳清且距離繳款日 5 天內置頂
@@ -1719,7 +1718,7 @@ function toggleTxSearchBox() {
     container.innerHTML = enrichedCards.map(({ card, billNow, billNext, cycleNow, cycleNext, isPaid, isUrgent }) => {
       const statusClass = isPaid ? 'paid' : (isUrgent ? 'urgent' : '');
       const statusTag = isPaid
-        ? `<span class="cc-cycle-badge" style="background:var(--bamboo);">✅ ${m}月帳單已繳清</span>`
+        ? `<span class="cc-cycle-badge" style="background:var(--bamboo);">✅ 本期帳單已繳清</span>`
         : (isUrgent ? `<span class="cc-cycle-badge" style="background:var(--yamabuki);">🚨 即將到期 (${cycleNow.dueStr}繳款)</span>` : '');
 
       return `
@@ -1730,33 +1729,33 @@ function toggleTxSearchBox() {
               <span class="cc-cycle-badge">每月 ${card.closingDay} 號結帳 ／ ${card.dueDay} 號繳款</span>
             </div>
             <button class="btn btn-sm ${isPaid ? '' : 'btn-bamboo'}" onclick="toggleCardPaid('${card.id}', '${currYM}')">
-              ${isPaid ? '↩️ 取消已繳' : `✅ 標記${m}月已繳`}
+              ${isPaid ? '↩️ 取消已繳' : '✅ 標記本期已繳'}
             </button>
           </div>
 
           <div class="cc-amounts-grid">
             <div class="cc-amt-box">
-              <div style="font-weight:bold;">🧾 ${m}月應繳 (${cycleNow.startStr}~${cycleNow.endStr})</div>
+              <div style="font-weight:bold;">🧾 本期應繳 (${cycleNow.startStr}~${cycleNow.endStr})</div>
               <div class="cc-amt-val">$${billNow.total.toLocaleString()}</div>
               <div style="font-size:0.72rem;">繳款截止：${cycleNow.dueStr}</div>
             </div>
             <div class="cc-amt-box" style="border-left:2px dashed var(--ink-border);padding-left:8px;">
-              <div style="font-weight:bold;">🔮 ${nm}月預估 (${cycleNext.startStr}~${cycleNext.endStr})</div>
+              <div style="font-weight:bold;">🔮 次期預估 (${cycleNext.startStr}~${cycleNext.endStr})</div>
               <div class="cc-amt-val">$${billNext.total.toLocaleString()}</div>
               <div style="font-size:0.72rem;">下期截止：${cycleNext.dueStr}</div>
             </div>
           </div>
 
           <details style="font-size:0.8rem;background:var(--washi-bg);border:2px solid var(--ink-border);border-radius:10px;padding:6px 10px;">
-            <summary style="font-weight:bold;cursor:pointer;">🔍 展開查看此卡【${m}月應繳】與【${nm}月預估】刷卡明細</summary>
+            <summary style="font-weight:bold;cursor:pointer;">🔍 展開查看此卡【本期應繳】與【次期預估】刷卡明細</summary>
             <div style="margin-top:6px;">
-              <div style="font-weight:bold;color:var(--ink-border);margin-bottom:4px;">📌 ${m}月應繳明細 (${cycleNow.startStr}~${cycleNow.endStr})：</div>
+              <div style="font-weight:bold;color:var(--ink-border);margin-bottom:4px;">📌 本期應繳明細 (${cycleNow.startStr}~${cycleNow.endStr})：</div>
               ${billNow.items.length ? billNow.items.map(i => `
                 <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dashed #ccc;">
                   <span>${i.date} ${i.title}</span><strong>$${i.amount.toLocaleString()}</strong>
                 </div>`).join('') : '<div style="color:var(--muted-ink);">無消費紀錄</div>'}
 
-              <div style="font-weight:bold;color:var(--ink-border);margin:8px 0 4px;">🔮 ${nm}月預估明細 (${cycleNext.startStr}~${cycleNext.endStr})：</div>
+              <div style="font-weight:bold;color:var(--ink-border);margin:8px 0 4px;">🔮 次期預估明細 (${cycleNext.startStr}~${cycleNext.endStr})：</div>
               ${billNext.items.length ? billNext.items.map(i => `
                 <div style="display:flex;justify-content:space-between;padding:2px 0;border-bottom:1px dashed #ccc;">
                   <span>${i.date} ${i.title}</span><strong>$${i.amount.toLocaleString()}</strong>
@@ -1774,6 +1773,10 @@ function toggleTxSearchBox() {
     document.getElementById('instCard').innerHTML = cardOpts;
     document.getElementById('subCard').innerHTML = cardOpts;
 
+    // 自動將新增分期的起算年月預設為當前檢視年月
+    const instYMInput = document.getElementById('instStartYM');
+    if (instYMInput) instYMInput.value = currYM;
+
     const instList = document.getElementById('installmentList');
     instList.innerHTML = state.installments.map(inst => {
       const card = state.cards.find(c => c.id === inst.cardId);
@@ -1789,7 +1792,7 @@ function toggleTxSearchBox() {
           <div>
             <div style="font-weight:bold;">🔄 ${inst.name} ${statusText}</div>
             <div style="font-size:0.75rem;color:var(--muted-ink);">
-              💳 ${card ? card.name : ''} ｜ 總額 $${inst.totalAmount.toLocaleString()} (首期$${firstAmt}/續期$${base}) ｜ 首期:${inst.firstDueMonth}
+              💳 ${card ? card.name : ''} ｜ 總額 $${inst.totalAmount.toLocaleString()} (首期$${firstAmt}/續期$${base}) ｜ 起算:${inst.firstDueMonth}
             </div>
           </div>
           <button class="btn btn-sm btn-coral" onclick="deleteInstallment('${inst.id}')">✕</button>
@@ -2038,10 +2041,17 @@ function toggleTxSearchBox() {
     saveState();
   }
 
-  function deleteCard(id) {
-    if (!confirm('確定要刪除這張信用卡嗎？')) return;
+function deleteCard(id) {
+    const card = state.cards.find(c => c.id === id);
+    if (!card) return;
+    if (!confirm(`確定要刪除「${card.name}」嗎？\n（過往刷卡明細會保留此卡名稱，綁定此卡的分期與訂閱將一併移除）`)) return;
+    state.transactions.forEach(tx => {
+      if (tx.payment === id && !tx.cardName) tx.cardName = card.name;
+    });
+    state.installments = state.installments.filter(i => i.cardId !== id);
+    state.subscriptions = state.subscriptions.filter(s => s.cardId !== id);
     state.cards = state.cards.filter(c => c.id !== id);
-    if (selectedPayment === id) selectedPayment = 'cash';
+    if (selectedPayment === id) setPayMethodType('cash');
     saveState();
   }
 
