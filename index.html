@@ -757,9 +757,31 @@
     <section class="storybook-card">
       <div class="section-title">
         <span>📒 本月消費明細</span>
-        <span id="txCountBadge" style="font-size:0.8rem; white-space:nowrap;">0 筆</span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span id="txCountBadge" style="font-size:0.8rem; white-space:nowrap;">0 筆</span>
+          <button type="button" id="toggleSearchBtn" class="pill-btn" style="padding:3px 10px; font-size:0.75rem; background:var(--aqua); white-space:nowrap;" onclick="toggleTxSearchBox()">🔍 搜尋</button>
+        </div>
       </div>
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:10px; background:var(--washi-bg); padding:6px 8px; border:var(--border-thick); border-radius:var(--radius-md);">
+
+      <!-- 點擊「🔍 搜尋」才展開的跨年份搜尋面板（平時隱藏不佔空間） -->
+      <div id="txSearchBox" class="sub-panel" style="display:none; background:var(--yamabuki); margin-bottom:10px;">
+        <div class="form-row" style="grid-template-columns: 1fr 1fr; margin-bottom:6px;">
+          <div>
+            <label class="label-sm">關鍵字（品項／備註／金額／卡片）</label>
+            <input type="text" id="txSearchKeyword" class="input-field" style="height:38px; font-size:0.85rem;" placeholder="例：全聯、聚餐、1850" oninput="renderRecentTransactions()" />
+          </div>
+          <div>
+            <label class="label-sm">指定日期（可查跨年舊帳）</label>
+            <input type="date" id="txSearchDate" class="input-field" style="height:38px; font-size:0.85rem;" onchange="renderRecentTransactions()" />
+          </div>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem;">
+          <span>💡 輸入任一條件即會自動搜尋所有歷史帳目</span>
+          <button type="button" class="btn btn-sm" onclick="clearTxSearch()">🧹 清除條件</button>
+        </div>
+      </div>
+
+      <div id="txDayStepper" style="display:flex; justify-content:space-between; align-items:center; gap:6px; margin-bottom:10px; background:var(--washi-bg); padding:6px 8px; border:var(--border-thick); border-radius:var(--radius-md);">
         <button type="button" class="pill-btn" style="padding:4px 10px; font-size:0.8rem; white-space:nowrap;" onclick="stepTxDay(-1)">◀ 前一天</button>
         <span id="txCurrentDayLabel" style="font-weight:bold; font-size:0.9rem;">2026-10-28</span>
         <button type="button" class="pill-btn" style="padding:4px 10px; font-size:0.8rem; white-space:nowrap;" onclick="stepTxDay(1)">後一天 ▶</button>
@@ -1549,12 +1571,33 @@ function getTodayLocalISO() {
     renderRecentTransactions();
   }
 
+function toggleTxSearchBox() {
+    const box = document.getElementById('txSearchBox');
+    const btn = document.getElementById('toggleSearchBtn');
+    const isHidden = box.style.display === 'none';
+    box.style.display = isHidden ? 'block' : 'none';
+    if (btn) {
+      btn.style.background = isHidden ? 'var(--coral)' : 'var(--aqua)';
+      btn.textContent = isHidden ? '✕ 收合搜尋' : '🔍 搜尋';
+    }
+    if (!isHidden) {
+      clearTxSearch();
+    }
+  }
+
+  function clearTxSearch() {
+    const kwEl = document.getElementById('txSearchKeyword');
+    const dtEl = document.getElementById('txSearchDate');
+    if (kwEl) kwEl.value = '';
+    if (dtEl) dtEl.value = '';
+    renderRecentTransactions();
+  }
+
   function renderRecentTransactions(period) {
- if (!period) period = getBudgetPeriodRange(currentViewYM);
+    if (!period) period = getBudgetPeriodRange(currentViewYM);
     const periodKey = `${period.startFull}_${period.endFull}`;
     const todayStr = getTodayLocalISO();
 
-    // 打開 App 或切換月份時：若「今天」在該預算週期內，強制預設顯示「今天」
     if (lastTxPeriodKey !== periodKey) {
       lastTxPeriodKey = periodKey;
       if (todayStr >= period.startFull && todayStr <= period.endFull) {
@@ -1565,26 +1608,56 @@ function getTodayLocalISO() {
     }
 
     const list = document.getElementById('recentTxList');
-    const monthFiltered = state.transactions
-      .filter(tx => tx.date >= period.startFull && tx.date <= period.endFull);
+    const stepper = document.getElementById('txDayStepper');
+    const kwEl = document.getElementById('txSearchKeyword');
+    const dtEl = document.getElementById('txSearchDate');
+    const keyword = kwEl ? kwEl.value.trim().toLowerCase() : '';
+    const searchDate = dtEl ? dtEl.value : '';
+    const isSearching = (keyword !== '' || searchDate !== '');
 
-    const dayFiltered = state.transactions
-      .filter(tx => tx.date === currentTxDay);
+    let displayList = [];
 
-    const dayLabel = document.getElementById('txCurrentDayLabel');
-    if (dayLabel) {
-      const isToday = (currentTxDay === todayStr) ? ' (今天)' : '';
-      dayLabel.textContent = `${currentTxDay}${isToday}`;
+    if (isSearching) {
+      if (stepper) stepper.style.display = 'none';
+      displayList = state.transactions.filter(tx => {
+        if (searchDate && tx.date !== searchDate) return false;
+        if (keyword) {
+          const cardObj = state.cards.find(c => c.id === tx.payment);
+          const payName = cardObj ? cardObj.name : '現金';
+          const haystack = `${tx.category} ${tx.note || ''} ${tx.amount} ${payName} ${tx.date}`.toLowerCase();
+          if (!haystack.includes(keyword)) return false;
+        }
+        return true;
+      }).sort((a, b) => b.date.localeCompare(a.date));
+
+      document.getElementById('txCountBadge').textContent = `🔍 找到 ${displayList.length} 筆`;
+
+      if (!displayList.length) {
+        list.innerHTML = `<div style="text-align:center;padding:14px;font-size:0.84rem;color:var(--muted-ink);">🔍 找不到符合條件的歷史帳目喔！</div>`;
+        return;
+      }
+    } else {
+      if (stepper) stepper.style.display = 'flex';
+      const monthFiltered = state.transactions
+        .filter(tx => tx.date >= period.startFull && tx.date <= period.endFull);
+      displayList = state.transactions
+        .filter(tx => tx.date === currentTxDay);
+
+      const dayLabel = document.getElementById('txCurrentDayLabel');
+      if (dayLabel) {
+        const isToday = (currentTxDay === todayStr) ? ' (今天)' : '';
+        dayLabel.textContent = `${currentTxDay}${isToday}`;
+      }
+
+      document.getElementById('txCountBadge').textContent = `當日 ${displayList.length} 筆 / 本期 ${monthFiltered.length} 筆`;
+
+      if (!displayList.length) {
+        list.innerHTML = `<div style="text-align:center;padding:14px;font-size:0.84rem;color:var(--muted-ink);">📅 ${currentTxDay} 這天沒有記帳紀錄喔！</div>`;
+        return;
+      }
     }
 
-    document.getElementById('txCountBadge').textContent = `當日 ${dayFiltered.length} 筆 / 本期 ${monthFiltered.length} 筆`;
-
-    if (!dayFiltered.length) {
-      list.innerHTML = `<div style="text-align:center;padding:14px;font-size:0.84rem;color:var(--muted-ink);">📅 ${currentTxDay} 這天沒有記帳紀錄喔！</div>`;
-      return;
-    }
-
-    list.innerHTML = dayFiltered.map(tx => {
+    list.innerHTML = displayList.map(tx => {
       const cardObj = state.cards.find(c => c.id === tx.payment);
       const payName = cardObj ? `💳 ${cardObj.name}` : '💵 現金';
       const dueBadge = cardObj
