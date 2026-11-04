@@ -805,7 +805,7 @@
           </svg>
           <span>結帳週期與總覽</span>
         </div>
-        <span style="font-size:0.78rem;background:var(--washi-bg);padding:2px 8px;border:2px solid var(--ink-border);border-radius:99px;" id="cardsViewMonthBadge">2026/10</span>
+<div><span id="cardsViewMonthBadge" style="display:none;"></span><button type="button" class="pill-btn" style="padding:3px 10px; font-size:0.75rem; background:var(--yamabuki); white-space:nowrap;" onclick="exportCardBillCSV()">📊 匯出報表</button></div>
       </div>
 
       <div class="cc-amounts-grid" style="margin-bottom:0;">
@@ -2101,6 +2101,52 @@ window.addEventListener('DOMContentLoaded', () => {
     } catch (err) {
       alert('連線發生錯誤，請確認網址與密碼是否正確，且 GAS 部署權限設為「所有人」：' + err.message);
     }
+  }
+
+  function exportCardBillCSV() {
+    const { y, m } = parseYM(currentViewYM);
+    const nextYMObj = addMonths(y, m, 1);
+    const nextYM = formatYM(nextYMObj.y, nextYMObj.m);
+
+    const rows = [
+      ['帳單期別', '信用卡名稱', '結帳區間', '繳款截止日', '繳款狀態', '消費/扣款日', '項目明細', '金額']
+    ];
+
+    const appendPeriodRows = (targetYM, periodLabel) => {
+      let grandTotal = 0;
+      state.cards.forEach(card => {
+        const bill = getCardBillForDueYM(card, targetYM);
+        const cycle = getCycleRangeForDueYM(targetYM, card);
+        const isPaid = !!(card.paidMonths && card.paidMonths[targetYM]);
+        const paidStatus = isPaid ? '已繳清' : '未繳';
+        const rangeText = `${cycle.startStr}~${cycle.endStr}`;
+        grandTotal += bill.total;
+
+        if (bill.items.length === 0) {
+          rows.push([periodLabel, card.name, rangeText, cycle.dueStr, paidStatus, '-', '(本期無消費)', 0]);
+        } else {
+          bill.items.forEach(item => {
+            rows.push([periodLabel, card.name, rangeText, cycle.dueStr, paidStatus, item.date, item.title, item.amount]);
+          });
+          rows.push([periodLabel, `${card.name} 小計`, rangeText, cycle.dueStr, paidStatus, '', '卡片應繳小計', bill.total]);
+        }
+      });
+      rows.push([periodLabel, '全部信用卡總計', '', '', '', '', '總計金額', grandTotal]);
+      rows.push([]);
+    };
+
+    appendPeriodRows(currentViewYM, `本期帳單 (${currentViewYM})`);
+    appendPeriodRows(nextYM, `下期預估 (${nextYM})`);
+
+    const csvContent = '\uFEFF' + rows.map(r =>
+      r.map(cell => `"${String(cell ?? '').replace(/"/g, '""')}"`).join(',')
+    ).join('\r\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `信用卡帳單報表_${currentViewYM}.csv`;
+    a.click();
   }
 
   function exportJsonBackup() {
